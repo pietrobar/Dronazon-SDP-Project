@@ -1,4 +1,4 @@
-package restserver;
+package restserver.services;
 
 /*
  * Created by Pietro on 07/05/2021
@@ -10,12 +10,15 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 
 /*
-* This server will manage two resources:
+* This interface serves the purpose to allow a ClientAdministrator to interact with the server
+*
+*
+* This interface will manage two resources:
 * - statistics about drones (managed in StatsManager)
-* - drones list (impremented as a list of DroneInfo)
+* - drones list (implemented as a list of DroneInfo)
 * */
 @Path("dronazon_service")
-public class ServerAdministrator {
+public class ServerAdministratorController {
   //Get drones list
   @Path("getDrones")
   @GET
