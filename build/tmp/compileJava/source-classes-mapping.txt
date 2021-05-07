@@ -1,0 +1,12 @@
+restserver/beans/StatsManager.java
+ restserver.beans.StatsManager
+restserver/beans/DroneInfo.java
+ restserver.beans.DroneInfo
+clientadmin/ClientAdministrator.java
+ clientadmin.ClientAdministrator
+restserver/beans/DronesInfoManager.java
+ restserver.beans.DronesInfoManager
+restserver/StartServerAdministrator.java
+ restserver.StartServerAdministrator
+restserver/ServerAdministrator.java
+ restserver.ServerAdministrator
