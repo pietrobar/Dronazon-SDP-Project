@@ -1,7 +1,9 @@
 package restserver.beans;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
-import java.util.Dictionary;
 import java.util.List;
 
 /**
@@ -9,9 +11,10 @@ import java.util.List;
  */
 
 
-
+@XmlRootElement
+@XmlAccessorType(XmlAccessType.FIELD)
 public class StatsManager {
-  private List<String> stats;//TODO: devo sostituire la stringa con un oggetto che rappresenti le statistiche
+  private final List<Statistic> stats;
 
   private static StatsManager instance;
 
@@ -23,6 +26,9 @@ public class StatsManager {
     if(instance==null)
       instance = new StatsManager();
     return instance;
+  }
+  public synchronized void add(Statistic s){
+    stats.add(s);
   }
 
 

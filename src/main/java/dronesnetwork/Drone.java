@@ -47,4 +47,8 @@ public class Drone {
    *  Join droneNetwork
    */
 
+
+  //CODICE PROVA INVIO STATISTICHE AL SERVER REST
+
+
 }

@@ -5,6 +5,7 @@ package restserver.services;
  */
 import restserver.beans.DroneInfo;
 import restserver.beans.DronesInfoManager;
+import restserver.beans.StatsManager;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
@@ -20,7 +21,7 @@ import javax.ws.rs.core.Response;
 @Path("dronazon_service")
 public class ServerAdministratorController {
   //Get drones list
-  @Path("getDrones")
+  @Path("get-drones")
   @GET
   @Produces({"application/json", "application/xml"})
   public Response getDronesList(){
@@ -28,7 +29,7 @@ public class ServerAdministratorController {
   }
 
   //add drone into list
-  @Path("addDrone")
+  @Path("add-drone")
   @POST
   @Consumes({"application/json", "application/xml"})
   public Response addDrone(DroneInfo drone){
@@ -37,13 +38,21 @@ public class ServerAdministratorController {
     return res? Response.ok().build() : Response.notModified("Wrong ID").build();
 
   }
-  // Json Example:
-  //  {
-  //    "id": 1,
-  //    "port": 1234
-  //  }
+//   Json Example:
+//    {
+//      "id": 1,
+//      "port": 1234
+//    }
 
 
+    //Get Statistics
+  @Path("get-stats")
+  @GET
+  @Produces({"application/json", "application/xml"})
+  public Response getStats(){
+    return Response.ok(StatsManager.getInstance()).build();
+  }
+//{"timestamp":"ciao","meanDelivery":7,"meanKilometers":10,"meanPollution":"AAAAAAAAAA","meanBattery":90}
 
 
 
