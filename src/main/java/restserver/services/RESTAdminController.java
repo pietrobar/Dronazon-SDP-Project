@@ -19,7 +19,7 @@ import javax.ws.rs.core.Response;
 * - drones list (implemented as a list of DroneInfo)
 * */
 @Path("dronazon_service")
-public class ServerAdministratorController {
+public class RESTAdminController {
   //Get drones list
   @Path("get-drones")
   @GET
