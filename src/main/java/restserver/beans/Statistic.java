@@ -12,12 +12,12 @@ public class Statistic {
   private String timestamp;//Todo: deve esssere di tipo TimeStamp
   private int meanDelivery;
   private int meanKilometers;
-  private String meanPollution;//TODO: il tipo dipendera' dal sensore PM10
+  private double meanPollution;
   private int meanBattery;
 
   public Statistic(){}
 
-  public Statistic(String timestamp, int meanDelivery, int meanKilometers, String meanPollution, int meanBattery) {
+  public Statistic(String timestamp, int meanDelivery, int meanKilometers, double meanPollution, int meanBattery) {
     this.timestamp = timestamp;
     this.meanDelivery = meanDelivery;
     this.meanKilometers = meanKilometers;
@@ -37,7 +37,7 @@ public class Statistic {
     return meanKilometers;
   }
 
-  public String getMeanPollution() {
+  public double getMeanPollution() {
     return meanPollution;
   }
 

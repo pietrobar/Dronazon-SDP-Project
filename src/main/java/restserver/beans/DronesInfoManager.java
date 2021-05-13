@@ -31,7 +31,7 @@ public class DronesInfoManager {
   }
 
   public boolean add(DroneInfo di){
-    for (DroneInfo drone : getDrones()){
+    for (DroneInfo drone : getDrones()){//questo e' gia' sincronizzato
       if (di.getId()==drone.getId()) return false;
     }
     synchronized (this){
