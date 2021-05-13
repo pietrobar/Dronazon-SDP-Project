@@ -24,7 +24,7 @@ public class ServerAdministrator {
   @Consumes({"application/json", "application/xml"})
   public Response addDrone(DroneInfo drone) {
     boolean outcome = DronesInfoManager.getInstance().add(drone);
-    return outcome ? Response.ok().build() : Response.notModified().build();//code: 304
+    return outcome ? Response.ok().build() : Response.notModified().build();//todo: deve restituire la lista di droni con IP e porta per ognuno
   }
 
   @POST

@@ -30,7 +30,7 @@ public class DronesInfoManager {
     return new ArrayList<>(drones);
   }
 
-  public boolean add(DroneInfo di){
+  public boolean add(DroneInfo di){//todo: la lista di droni deve essere sempre ordinata
     for (DroneInfo drone : getDrones()){//questo e' gia' sincronizzato
       if (di.getId()==drone.getId()) return false;
     }

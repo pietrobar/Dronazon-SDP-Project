@@ -1,5 +1,7 @@
 package restserver.beans;
 
+import dronazon.Coordinate;
+
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
@@ -9,6 +11,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class DroneInfo {
   private int id;
   private int port;
+
+  private Coordinate position;
 
   public DroneInfo(){}
 
@@ -24,5 +28,13 @@ public class DroneInfo {
 
   public int getPort() {
     return port;
+  }
+
+  public Coordinate getPosition() {
+    return position;
+  }
+
+  public void setPosition(Coordinate position) {
+    this.position = position;
   }
 }
