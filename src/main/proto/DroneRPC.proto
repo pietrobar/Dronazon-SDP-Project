@@ -1,6 +1,6 @@
 syntax = "proto3";
 package com.example.grpc;
-import "google/protobuf/empty.proto";
+
 
 // Request payload
 
@@ -10,7 +10,11 @@ message AddDroneRequest {
   int32 yCoord = 3;
 }
 
+message AddDroneResponse {
+  int32 masterId = 1;
+}
+
 // Defining a Service, a Service can have multiple RPC operations
 service DroneService {
-  rpc addDrone(AddDroneRequest) returns (google.protobuf.Empty);
+  rpc addDrone(AddDroneRequest) returns (AddDroneResponse);
 }

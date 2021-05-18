@@ -23,7 +23,7 @@ public class DroneGRPCCommunication {
 
       Server server = ServerBuilder.forPort(d.getPort()).addService(new DroneServiceGrpc.DroneServiceImplBase() {
         @Override
-        public void addDrone(DroneRPC.AddDroneRequest request, StreamObserver<Empty> responseObserver) {
+        public void addDrone(DroneRPC.AddDroneRequest request, StreamObserver<DroneRPC.AddDroneResponse> responseObserver) {
           //here i have to let the message go through the ring
 
           DroneInfo successor = d.successor();
@@ -32,8 +32,7 @@ public class DroneGRPCCommunication {
           final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
 
           DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
-          System.out.println("Inserisci due numeri: ");
-          Scanner in = new Scanner(System.in);
+
           DroneRPC.AddDroneRequest forward = DroneRPC.AddDroneRequest.newBuilder().setId(request.getId()).setXCoord(request.getXCoord()).setYCoord(request.getYCoord()).build();
 
           channel.shutdown();

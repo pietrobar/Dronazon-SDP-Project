@@ -3,12 +3,18 @@ package dronesnetwork;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.api.json.JSONConfiguration;
 import dronazon.Coordinate;
 import javafx.util.Pair;
+import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
 import restserver.beans.DroneInfo;
 import restserver.beans.Statistic;
 
+import javax.ws.rs.core.MediaType;
 import java.util.List;
 
 /**
@@ -40,24 +46,32 @@ public class DroneRESTCommunication {
     }
   }
 
+  public static void main(String[] args) {
+    registerDrone(new Drone(1,999,"http://localhost:1337/drone_interface"));
+  }
   public static boolean registerDrone(Drone drone) {
-
-
-    Client client = Client.create();
+    ClientConfig clientConfig = new DefaultClientConfig();
+    clientConfig.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
+    clientConfig.getClasses().add(JacksonJsonProvider.class);
+    Client client = Client.create(clientConfig);
 
     WebResource webResource = client
               .resource(drone.getAdministratorServerAddress() + "/add-drone");
 
     Gson gson = new Gson();
-    String droneInfoJson = gson.toJson(new DroneInfo(drone.getId(),drone.getPort()));
+    String droneInfoJson = gson.toJson(new DroneInfo(drone.getId(),drone.getIp(),drone.getPort()));
     ClientResponse response = webResource.type("application/json")
               .post(ClientResponse.class, droneInfoJson);
 
 
-    if(response.getStatus()!=301){//   != NotModified
-      Pair<Coordinate,List<DroneInfo>> pair = response.getEntity(Pair.class);
-      drone.setPosition((Coordinate) pair.getKey());
-      drone.setDrones((List<DroneInfo>) pair.getValue());
+    if(response.getStatus()!=301){//   != NotModified if id already present
+      List<DroneInfo> drones = response.getEntity(new GenericType<List<DroneInfo>>(){});
+      for (DroneInfo d : drones){
+        if (d.getId()==drone.getId()){//if it's me
+          drone.setPosition(d.getPosition());
+        }
+      }
+      drone.setDrones(drones);
     }else {
       return false;
     }

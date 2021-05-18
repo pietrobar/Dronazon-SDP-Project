@@ -21,6 +21,7 @@ import java.util.Scanner;
 public class Drone {
   //initialization fields
   private final int id;
+  private final String ip="localhost";
   private final int port;
   private final String administratorServerAddress;
 
@@ -59,16 +60,32 @@ public class Drone {
     if (getDronesCopy().size()==1){
       this.masterId=this.id;
     }else{
-      //otherwise search for my successor
+      //otherwise broadcast to every other node
       DroneInfo successor = successor();
-      //communicate via gRPC
-      final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
 
-      DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+//      for (DroneInfo node : getDronesCopy()){
+//        Thread t = new Thread(){
+//          //todo: devo passare il parametro this perche' non e' accessibile da dentro il thread=> estendere la classe thread
+//          @Override
+//          public void run() {
+//            final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+node.getPort()).usePlaintext().build();
+//            //todo: gestire le eccezioni sulla connessione
+//            DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+//
+//            DroneRPC.AddDroneRequest request = DroneRPC.AddDroneRequest.newBuilder().setId(this.id).setXCoord(this.position.getX()).setYCoord(this.position.getY()).build();
+//
+//            DroneRPC.AddDroneResponse response = stub.addDrone(request);//receive an answer
+//            if (response.getMasterId()!=-1)//all drones except master sends -1
+//              masterId = response.getMasterId();
+//
+//
+//              //todo: potrei iniziare una elezione se non ci fosse un master attivo
+//              channel.shutdown();
+//          }
+//        };
+//
+//      }
 
-      DroneRPC.AddDroneRequest request = DroneRPC.AddDroneRequest.newBuilder().setId(this.id).setXCoord(this.position.getX()).setYCoord(this.position.getY()).build();
-
-      channel.shutdown();
     }
 
   }
@@ -87,6 +104,10 @@ public class Drone {
 
   public int getId() {
     return id;
+  }
+
+  public String getIp() {
+    return this.ip;
   }
 
   public int getPort() {
@@ -130,5 +151,6 @@ public class Drone {
   public static void main(String[] args) {
 
   }
+
 
 }
