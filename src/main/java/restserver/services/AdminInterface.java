@@ -47,13 +47,13 @@ public class AdminInterface {
 
 
     //Get Statistics
-  @Path("get-stats")
+  @Path("get-stats/{n}")
   @GET
   @Produces({"application/json", "application/xml"})
-  public Response getStats(){
-    return Response.ok(StatsManager.getInstance().getStats()).build();
+  public Response getStats(@PathParam("n") int nStats){
+    return Response.ok(StatsManager.getInstance().getNStats(nStats)).build();
   }
-//{"timestamp":"ciao","meanDelivery":7,"meanKilometers":10,"meanPollution":"AAAAAAAAAA","meanBattery":90}
+//{"timestamp":"ciao","meanDelivery":7,"meanKilometers":10,"meanPollution":5,"meanBattery":90}
 
 
 

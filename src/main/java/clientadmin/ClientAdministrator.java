@@ -39,7 +39,7 @@ public class ClientAdministrator {
         String action = scanner.nextLine();
         switch (action){
           case "1": getDrones(client); break;
-          case "2": getStats(client); break;
+          case "2": getStats(client, 3); break;
           default:
             System.err.println("ERR: "+action+" is not a valid input");
         }
@@ -78,9 +78,9 @@ public class ClientAdministrator {
     }
   }
 
-  private static void getStats(Client client) {
+  private static void getStats(Client client, int n) {
     WebResource webResource = client
-            .resource(url+"get-stats");
+            .resource(url+"get-stats/"+n);
     ClientResponse response = webResource.accept("application/json")
             .get(ClientResponse.class);
 

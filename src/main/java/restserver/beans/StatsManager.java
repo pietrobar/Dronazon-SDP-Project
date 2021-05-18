@@ -41,4 +41,8 @@ public class StatsManager {
   public void setStats(List<Statistic> stats) {
     this.stats = stats;
   }
+
+  public synchronized Object getNStats(int n) {
+    return stats.subList(stats.size()-n, stats.size()-1);
+  }
 }
