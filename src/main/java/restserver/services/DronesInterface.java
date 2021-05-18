@@ -12,19 +12,23 @@ import restserver.beans.StatsManager;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.Response;
+import java.util.List;
 
 /*
 * This is the facade of the server that interacts with drones and receives stats*/
 @Path("drone_interface")
-public class ServerAdministrator {
+public class DronesInterface {
 
   @POST
   @Path("/add-drone")
   @Consumes({"application/json", "application/xml"})
+  @Produces({"application/json", "application/xml"})
   public Response addDrone(DroneInfo drone) {
     boolean outcome = DronesInfoManager.getInstance().add(drone);
-    return outcome ? Response.ok().build() : Response.notModified().build();//todo: deve restituire la lista di droni con IP e porta per ognuno
+    return outcome ? Response.ok(new GenericEntity<List<DroneInfo>>(DronesInfoManager.getInstance().getDrones()){}).build() : Response.notModified().build();
   }
 
   @POST

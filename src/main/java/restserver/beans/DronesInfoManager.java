@@ -1,7 +1,10 @@
 package restserver.beans;
 
+import dronazon.Coordinate;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +15,7 @@ import java.util.List;
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
 public class DronesInfoManager {
+  @XmlElement
   private final List<DroneInfo> drones;
 
   private static DronesInfoManager instance;
@@ -35,6 +39,7 @@ public class DronesInfoManager {
       if (di.getId()==drone.getId()) return false;
     }
     synchronized (this){
+      di.setPosition(Coordinate.randomCoordinate());//set starting position of the new drone
       drones.add(di);
       return true;
     }

@@ -1,15 +1,18 @@
 package dronazon;
 
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 import java.util.Random;
 
 /**
  * Created by Pietro on 07/05/2021
  */
+@XmlRootElement
 public class Coordinate{
-  public final int x;
-  public final int y;
+  public int x;
+  public int y;
 
+  public Coordinate(){}
   public Coordinate(int x, int y) {
     this.x = x;
     this.y = y;

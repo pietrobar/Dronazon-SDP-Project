@@ -19,16 +19,16 @@ import javax.ws.rs.core.Response;
 * - drones list (implemented as a list of DroneInfo)
 * */
 @Path("dronazon_service")
-public class RESTAdminController {
+public class AdminInterface {
   //Get drones list
   @Path("get-drones")
   @GET
   @Produces({"application/json", "application/xml"})
   public Response getDronesList(){
-    return Response.ok(DronesInfoManager.getInstance()).build();
+    return Response.ok(DronesInfoManager.getInstance().getDrones()).build();
   }
 
-  //add drone into list
+  //add drone into list//todo: da rimuovere, mi serve solo per il debugging con ARC
   @Path("add-drone")
   @POST
   @Consumes({"application/json", "application/xml"})
@@ -41,6 +41,7 @@ public class RESTAdminController {
 //   Json Example:
 //    {
 //      "id": 1,
+//      "ip": "localhost",
 //      "port": 1234
 //    }
 
@@ -50,7 +51,7 @@ public class RESTAdminController {
   @GET
   @Produces({"application/json", "application/xml"})
   public Response getStats(){
-    return Response.ok(StatsManager.getInstance()).build();
+    return Response.ok(StatsManager.getInstance().getStats()).build();
   }
 //{"timestamp":"ciao","meanDelivery":7,"meanKilometers":10,"meanPollution":"AAAAAAAAAA","meanBattery":90}
 
