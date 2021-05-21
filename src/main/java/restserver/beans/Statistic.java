@@ -1,14 +1,19 @@
 package restserver.beans;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 
 /**
  * Created by Pietro on 12/05/2021
  */
 
 @XmlRootElement
-public class Statistic {
-  private String timestamp;//Todo: deve esssere di tipo TimeStamp
+public class Statistic implements Comparator<Statistic> {
+  private String timestamp;
   private int meanDelivery;
   private int meanKilometers;
   private double meanPollution;
@@ -73,5 +78,23 @@ public class Statistic {
             ", meanPollution=" + meanPollution +
             ", meanBattery=" + meanBattery +
             '}';
+  }
+
+  //based on timestamp
+  @Override
+  public int compare(Statistic o1, Statistic o2) {
+//     0: if (x==y)
+//    -1: if (x < y)
+//     1: if (x > y)
+
+    LocalDateTime firstDate = extractDateTime(o1.timestamp);
+    LocalDateTime secondDate = extractDateTime(o2.timestamp);
+    if(firstDate.isEqual(secondDate)) return 0;
+    if(firstDate.isBefore(secondDate)) return -1;
+    else return 1;//firstDate.isAfter(secondDate)
+  }
+  public static LocalDateTime extractDateTime(String timestamp){
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    return LocalDateTime.parse(timestamp, formatter);
   }
 }

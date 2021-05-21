@@ -35,11 +35,15 @@ public class ClientAdministrator {
       while(true){
         System.out.println("Select an operation:\n" +
                 "Get drone list -> 1\n" +
-                "Get statistics -> 2");
+                "Get statistics -> 2\n" +
+                "Get deliveries number -> 3\n" +
+                "Get mean km -> 4");
         String action = scanner.nextLine();
         switch (action){
           case "1": getDrones(client); break;
           case "2": getStats(client, 3); break;
+          case "3": getDeliveriesBetweenTimestamps(client, scanner); break;
+          case "4": getKMBetweenTimestamps(client, scanner); break;
           default:
             System.err.println("ERR: "+action+" is not a valid input");
         }
@@ -56,7 +60,33 @@ public class ClientAdministrator {
 
   }
 
+  private static void getKMBetweenTimestamps(Client client, Scanner scanner) {
+  }
 
+  private static void getDeliveriesBetweenTimestamps(Client client, Scanner in) {
+    System.out.println("Insert time interval (yyyy-MM-dd HH:mm):");
+    //todo: forse serve fare il controllo sull'input
+    String t1 = in.nextLine();
+    String t2 = in.nextLine();
+    WebResource webResource = client
+            .resource(url+"get-deliveries/"+processed(t1)+"/"+processed(t2));
+    ClientResponse response = webResource.accept("application/json")
+            .get(ClientResponse.class);
+
+    if (response.getStatus() != 200) {
+      throw new RuntimeException("Failed : HTTP error code : "
+              + response.getStatus());
+    }
+
+    String output = response.getEntity(String.class);
+    System.out.println("-------------------DELIVERIES NUMBER-------------------");
+    System.out.println(output);
+  }
+
+  private static String processed(String t1) {
+    String[] raw = t1.split(" ");
+    return raw[0]+"x"+raw[1];
+  }
 
 
   private static void getDrones(Client client) {

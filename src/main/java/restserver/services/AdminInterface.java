@@ -53,8 +53,17 @@ public class AdminInterface {
   public Response getStats(@PathParam("n") int nStats){
     return Response.ok(StatsManager.getInstance().getNStats(nStats)).build();
   }
-//{"timestamp":"ciao","meanDelivery":7,"meanKilometers":10,"meanPollution":5,"meanBattery":90}
+//{"timestamp":"yyyy-MM-dd HH:mm","meanDelivery":7,"meanKilometers":10,"meanPollution":5,"meanBattery":90}
 
-
+  @Path("get-deliveries/{n}/{k}")
+  @GET
+  @Produces({"application/json", "application/xml"})
+  public Response getDeliveries(@PathParam("n") String t1, @PathParam("k") String t2){
+    System.err.println(t1+",   "+t2);
+    t1=t1.replace('x',' ');
+    t2=t2.replace('x',' ');
+    return Response.ok(StatsManager.getInstance().getDeliveriesBetweenTimestamps(t1,t2)).build();
+    //funziona da ARC e non dal client java
+  }
 
 }
