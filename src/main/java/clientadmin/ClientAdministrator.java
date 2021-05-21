@@ -60,7 +60,24 @@ public class ClientAdministrator {
 
   }
 
-  private static void getKMBetweenTimestamps(Client client, Scanner scanner) {
+  private static void getKMBetweenTimestamps(Client client, Scanner in) {
+    System.out.println("Insert time interval (yyyy-MM-dd HH:mm):");
+    //todo: forse serve fare il controllo sull'input
+    String t1 = in.nextLine();
+    String t2 = in.nextLine();
+    WebResource webResource = client
+            .resource(url+"get-kilometers/"+processed(t1)+"/"+processed(t2));
+    ClientResponse response = webResource.accept("application/json")
+            .get(ClientResponse.class);
+
+    if (response.getStatus() != 200) {
+      throw new RuntimeException("Failed : HTTP error code : "
+              + response.getStatus());
+    }
+
+    String output = response.getEntity(String.class);
+    System.out.println("-------------------MEAN KILOMETERS-------------------");
+    System.out.println(output);
   }
 
   private static void getDeliveriesBetweenTimestamps(Client client, Scanner in) {

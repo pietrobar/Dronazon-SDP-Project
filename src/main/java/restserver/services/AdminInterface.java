@@ -59,11 +59,18 @@ public class AdminInterface {
   @GET
   @Produces({"application/json", "application/xml"})
   public Response getDeliveries(@PathParam("n") String t1, @PathParam("k") String t2){
-    System.err.println(t1+",   "+t2);
     t1=t1.replace('x',' ');
     t2=t2.replace('x',' ');
     return Response.ok(StatsManager.getInstance().getDeliveriesBetweenTimestamps(t1,t2)).build();
-    //funziona da ARC e non dal client java
+  }
+
+  @Path("get-kilometers/{n}/{k}")
+  @GET
+  @Produces({"application/json", "application/xml"})
+  public Response getKilometers(@PathParam("n") String t1, @PathParam("k") String t2){
+    t1=t1.replace('x',' ');
+    t2=t2.replace('x',' ');
+    return Response.ok(StatsManager.getInstance().getKilometersBetweenTimestamps(t1,t2)).build();
   }
 
 }
