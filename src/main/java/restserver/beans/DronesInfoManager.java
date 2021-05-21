@@ -34,14 +34,11 @@ public class DronesInfoManager {
     return new ArrayList<>(drones);
   }
 
-  public boolean add(DroneInfo di){//todo: la lista di droni deve essere sempre ordinata
-    for (DroneInfo drone : getDrones()){//questo e' gia' sincronizzato
-      if (di.getId()==drone.getId()) return false;
+  public synchronized ResponseInitialization add(DroneInfo di){//todo: la lista di droni deve essere sempre ordinata
+    for (DroneInfo drone : drones){//questo e' gia' sincronizzato
+      if (di.getId()==drone.getId()) return null;
     }
-    synchronized (this){
-      di.setPosition(Coordinate.randomCoordinate());//set starting position of the new drone
-      drones.add(di);
-      return true;
-    }
+    drones.add(di);
+    return new ResponseInitialization(drones);
   }
 }

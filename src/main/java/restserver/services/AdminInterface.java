@@ -5,6 +5,7 @@ package restserver.services;
  */
 import restserver.beans.DroneInfo;
 import restserver.beans.DronesInfoManager;
+import restserver.beans.ResponseInitialization;
 import restserver.beans.StatsManager;
 
 import javax.ws.rs.*;
@@ -33,9 +34,9 @@ public class AdminInterface {
   @POST
   @Consumes({"application/json", "application/xml"})
   public Response addDrone(DroneInfo drone){
-    boolean res = DronesInfoManager.getInstance().add(drone);
+    ResponseInitialization res = DronesInfoManager.getInstance().add(drone);
 
-    return res? Response.ok().build() : Response.notModified("Wrong ID").build();
+    return res!=null? Response.ok().build() : Response.notModified("Wrong ID").build();
 
   }
 //   Json Example:

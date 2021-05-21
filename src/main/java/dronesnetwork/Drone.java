@@ -43,8 +43,8 @@ public class Drone {
     this.batteryCharge=100;
     pm10Sensor = new PM10Simulator(new BufferCls());
 
-    boolean outcome = DroneRESTCommunication.registerDrone(this);
-    if(outcome) insertNetwork();
+    boolean outcome = DroneRESTCommunication.registerDrone(this);//can be synchronous, until the registration the drone can't do anything
+    //if(outcome) insertNetwork();
     //todo: si registra al sistema tramite il server amministratore
     //todo: inserimento nella rete decentralizzata
     //todo: fa partire il thread che raccoglie dati sull'inquinamento
@@ -55,15 +55,16 @@ public class Drone {
     return new ArrayList<>(drones);
   }
 
-  private void insertNetwork() {
-    //if i'm the only one => i'm the Master
-    if (getDronesCopy().size()==1){
-      this.masterId=this.id;
-    }else{
-      //otherwise broadcast to every other node
-      DroneInfo successor = successor();
-
-//      for (DroneInfo node : getDronesCopy()){
+//  private void insertNetwork() {
+//    //if i'm the only one => i'm the Master
+//    List<DroneInfo> drones = getDronesCopy();
+//    if (drones.size()==1){
+//      this.masterId=this.id;
+//    }else{
+//      //otherwise broadcast to every other node
+//      DroneInfo successor = successor();
+//
+//      for (DroneInfo node : drones){
 //        Thread t = new Thread(){
 //          //todo: devo passare il parametro this perche' non e' accessibile da dentro il thread=> estendere la classe thread
 //          @Override
@@ -85,10 +86,10 @@ public class Drone {
 //        };
 //
 //      }
-
-    }
-
-  }
+//
+//    }
+//
+//  }
 
   public DroneInfo successor() {
     List<DroneInfo> ds =getDronesCopy();

@@ -12,6 +12,7 @@ import dronazon.Coordinate;
 import javafx.util.Pair;
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
 import restserver.beans.DroneInfo;
+import restserver.beans.ResponseInitialization;
 import restserver.beans.Statistic;
 
 import javax.ws.rs.core.MediaType;
@@ -47,8 +48,12 @@ public class DroneRESTCommunication {
   }
 
   public static void main(String[] args) {
-    registerDrone(new Drone(1,999,"http://localhost:1337/drone_interface"));
+    new Drone(3,999,"http://localhost:1337/drone_interface");
   }
+
+  /*
+  * register a drone to the admininstrator server
+  * */
   public static boolean registerDrone(Drone drone) {
     ClientConfig clientConfig = new DefaultClientConfig();
     clientConfig.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
@@ -65,15 +70,9 @@ public class DroneRESTCommunication {
 
 
     if(response.getStatus()!=301){//   != NotModified if id already present
-      List<DroneInfo> drones = response.getEntity(new GenericType<List<DroneInfo>>(){});
-      for (DroneInfo d : drones){
-        if (d.getId()==drone.getId()){//if it's me
-          drone.setPosition(d.getPosition());
-        }
-      }
-      drone.setDrones(drones);
-    }else {
-      return false;
+      ResponseInitialization res = response.getEntity(ResponseInitialization.class);
+      drone.setPosition(res.getStartingPosition());
+      drone.setDrones(res.getDrones());
     }
     return true;
   }

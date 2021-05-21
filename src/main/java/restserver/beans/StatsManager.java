@@ -43,7 +43,7 @@ public class StatsManager {
     this.stats = stats;
   }
 
-  public Object getNStats(int n) {
+  public List<Statistic> getNStats(int n) {
     return getStats().subList(stats.size()-n, stats.size()-1);
   }
 
@@ -51,7 +51,7 @@ public class StatsManager {
     return valueBetween(t1, t2, "deliveries");
   }
 
-  public Object getKilometersBetweenTimestamps(String t1, String t2) {
+  public int getKilometersBetweenTimestamps(String t1, String t2) {
     return valueBetween(t1, t2, "km");
   }
 
