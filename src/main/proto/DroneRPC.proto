@@ -6,8 +6,10 @@ package com.example.grpc;
 
 message AddDroneRequest {
   int32 id = 1;
-  int32 xCoord = 2;
-  int32 yCoord = 3;
+  string ip = 2;
+  int32 port = 3;
+  int32 xCoord = 4;
+  int32 yCoord = 5;
 }
 
 message AddDroneResponse {

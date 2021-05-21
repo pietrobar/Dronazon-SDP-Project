@@ -16,6 +16,7 @@ import restserver.beans.ResponseInitialization;
 import restserver.beans.Statistic;
 
 import javax.ws.rs.core.MediaType;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -24,35 +25,35 @@ import java.util.List;
 
 /*  This class is meant to offer static methods for communication to drones.
 * */
-public class DroneRESTCommunication {
-  private static final String serverRest="http://localhost:1337/drone_interface";
+public class DroneRESTCommunication{
 
 
-  public static void sendStatistics(){
-    try {
-
-      Client client = Client.create();
-
-      WebResource webResource = client
-              .resource(serverRest + "/add-stat");
-
-      ClientResponse response = webResource.type("application/json")
-              .post(ClientResponse.class, "{\"timestamp\":\"g\",\"meanDelivery\":7,\"meanKilometers\":10,\"meanPollution\":\"g\",\"meanBattery\":90}");
-
-
-    } catch (Exception e) {
-
-      e.printStackTrace();
-
-    }
-  }
+  //  public static void sendStatistics(){
+//    try {
+//
+//      Client client = Client.create();
+//
+//      WebResource webResource = client
+//              .resource(  "/add-stat");
+//
+//      ClientResponse response = webResource.type("application/json")
+//              .post(ClientResponse.class, "{\"timestamp\":\"g\",\"meanDelivery\":7,\"meanKilometers\":10,\"meanPollution\":\"g\",\"meanBattery\":90}");
+//
+//
+//    } catch (Exception e) {
+//
+//      e.printStackTrace();
+//
+//    }
+//  }
 
   public static void main(String[] args) {
-    new Drone(3,999,"http://localhost:1337/drone_interface");
+    new Drone(1,999,"http://localhost:1337/drone_interface");
+    new Drone(2,998,"http://localhost:1337/drone_interface");
   }
 
   /*
-  * register a drone to the admininstrator server
+  * register a drone to the administrator server
   * */
   public static boolean registerDrone(Drone drone) {
     ClientConfig clientConfig = new DefaultClientConfig();
@@ -70,10 +71,16 @@ public class DroneRESTCommunication {
 
 
     if(response.getStatus()!=301){//   != NotModified if id already present
-      ResponseInitialization res = response.getEntity(ResponseInitialization.class);
-      drone.setPosition(res.getStartingPosition());
-      drone.setDrones(res.getDrones());
+      List<DroneInfo> res = response.getEntity(new GenericType<List<DroneInfo>>(){});
+      for (DroneInfo di : res){
+        if(di.getId()==drone.getId()) drone.setPosition(di.getPosition());
+      }
+      drone.setDrones(res);
+
+    }else{
+      return false;
     }
+    System.out.println("Registered to the server administrator");
     return true;
   }
 

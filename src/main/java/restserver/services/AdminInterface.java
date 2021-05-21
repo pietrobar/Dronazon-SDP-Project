@@ -10,6 +10,7 @@ import restserver.beans.StatsManager;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
+import java.util.List;
 
 /*
 * This interface serves the purpose to allow a ClientAdministrator to interact with the server
@@ -34,7 +35,7 @@ public class AdminInterface {
   @POST
   @Consumes({"application/json", "application/xml"})
   public Response addDrone(DroneInfo drone){
-    ResponseInitialization res = DronesInfoManager.getInstance().add(drone);
+    List<DroneInfo> res = DronesInfoManager.getInstance().add(drone);
 
     return res!=null? Response.ok().build() : Response.notModified("Wrong ID").build();
 

@@ -12,6 +12,7 @@ import sensorpm10.BufferCls;
 import sensorpm10.PM10Simulator;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
 
@@ -43,7 +44,13 @@ public class Drone {
     this.batteryCharge=100;
     pm10Sensor = new PM10Simulator(new BufferCls());
 
-    boolean outcome = DroneRESTCommunication.registerDrone(this);//can be synchronous, until the registration the drone can't do anything
+    //can be synchronous, until the registration the drone can't do anything
+    while(!DroneRESTCommunication.registerDrone(this)){
+      System.out.println("contacting server");
+    }
+    DroneGRPCCommunication droneGRPC = new DroneGRPCCommunication(this);
+    Thread t = new Thread(droneGRPC);
+    t.start();
     //if(outcome) insertNetwork();
     //todo: si registra al sistema tramite il server amministratore
     //todo: inserimento nella rete decentralizzata
@@ -55,52 +62,8 @@ public class Drone {
     return new ArrayList<>(drones);
   }
 
-//  private void insertNetwork() {
-//    //if i'm the only one => i'm the Master
-//    List<DroneInfo> drones = getDronesCopy();
-//    if (drones.size()==1){
-//      this.masterId=this.id;
-//    }else{
-//      //otherwise broadcast to every other node
-//      DroneInfo successor = successor();
-//
-//      for (DroneInfo node : drones){
-//        Thread t = new Thread(){
-//          //todo: devo passare il parametro this perche' non e' accessibile da dentro il thread=> estendere la classe thread
-//          @Override
-//          public void run() {
-//            final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+node.getPort()).usePlaintext().build();
-//            //todo: gestire le eccezioni sulla connessione
-//            DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
-//
-//            DroneRPC.AddDroneRequest request = DroneRPC.AddDroneRequest.newBuilder().setId(this.id).setXCoord(this.position.getX()).setYCoord(this.position.getY()).build();
-//
-//            DroneRPC.AddDroneResponse response = stub.addDrone(request);//receive an answer
-//            if (response.getMasterId()!=-1)//all drones except master sends -1
-//              masterId = response.getMasterId();
-//
-//
-//              //todo: potrei iniziare una elezione se non ci fosse un master attivo
-//              channel.shutdown();
-//          }
-//        };
-//
-//      }
-//
-//    }
-//
-//  }
 
-  public DroneInfo successor() {
-    List<DroneInfo> ds =getDronesCopy();
-    for (DroneInfo d : ds){
-      if(d.getId()>this.id){
-        return d;
-      }
-    }
-    //if no one has highest id my successor is the first Drone in the ordered list, and i'm the last one
-    return ds.get(0);
-  }
+
 
 
   public int getId() {
@@ -135,23 +98,42 @@ public class Drone {
     this.batteryCharge = batteryCharge;
   }
 
-  /*  First thing to do:
-  *   register to the ServerAdministrator
-  */
+  public int getMasterId() {
+    return masterId;
+  }
 
+  public void setMasterId(int masterId) {
+    this.masterId = masterId;
+  }
 
-  /*  Second thing to do:
-   *  Join droneNetwork
-   */
-
-
-  //CODICE PROVA INVIO STATISTICHE AL SERVER REST
-
-
-
-  public static void main(String[] args) {
-
+  public Coordinate getPosition() {
+    return position;
   }
 
 
+
+  public synchronized void addDroneInfo(DroneInfo droneInfo) {
+    drones.add(droneInfo);
+    drones.sort(new Comparator<DroneInfo>() {
+      @Override
+      public int compare(DroneInfo o1, DroneInfo o2) {
+        return Integer.compare(o1.getId(), o2.getId());
+      }
+    });
+  }
+
+  @Override
+  public String toString() {
+    return "Drone{" +
+            "id=" + id +
+            ", ip='" + ip + '\'' +
+            ", port=" + port +
+            ", batteryCharge=" + batteryCharge +
+            ", masterId=" + masterId +
+            ", position=" + position +
+            ", drones=" + drones +
+            ", orders=" + orders +
+            ", successor= " + DroneGRPCCommunication.successor(drones,id)+
+            '}';
+  }
 }

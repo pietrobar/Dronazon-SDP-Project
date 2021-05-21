@@ -11,8 +11,8 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.Response;
+import java.util.List;
 
 /*
 * This is the facade of the server that interacts with drones and receives stats*/
@@ -24,10 +24,8 @@ public class DronesInterface {
   @Consumes({"application/json", "application/xml"})
   @Produces({"application/json", "application/xml"})
   public Response addDrone(DroneInfo drone) {
-    ResponseInitialization res = DronesInfoManager.getInstance().add(drone);
-    Gson gson = new Gson();
-    String json = gson.toJson(res);
-    return res!=null ? Response.ok(json).build() : Response.notModified().build();
+    List<DroneInfo> res = DronesInfoManager.getInstance().add(drone);
+    return res!=null ? Response.ok(res).build() : Response.notModified().build();
   }
 
   @POST

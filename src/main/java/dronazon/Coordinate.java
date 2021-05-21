@@ -33,4 +33,9 @@ public class Coordinate{
     //TODO: si potrebbe controllare che non vengano create due coordinate uguali di seguito => punto di partenza == punto arrivo
     return generated;
   }
+
+  @Override
+  public String toString() {
+    return "("+x+","+y+")";
+  }
 }

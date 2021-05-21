@@ -16,6 +16,10 @@ public class DroneInfo implements Comparator<DroneInfo> {
   private int id;
   private String ip;
   private int port;
+
+  private Coordinate position;
+
+
   public DroneInfo(){}
 
   public DroneInfo(int id, String ip,int port) {
@@ -46,6 +50,14 @@ public class DroneInfo implements Comparator<DroneInfo> {
 
   public String getIp() {
     return ip;
+  }
+
+  public Coordinate getPosition() {
+    return position;
+  }
+
+  public void setPosition(Coordinate position) {
+    this.position = position;
   }
 
 
