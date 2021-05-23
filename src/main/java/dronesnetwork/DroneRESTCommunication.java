@@ -8,15 +8,8 @@ import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
-import dronazon.Coordinate;
-import javafx.util.Pair;
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
 import restserver.beans.DroneInfo;
-import restserver.beans.ResponseInitialization;
-import restserver.beans.Statistic;
-
-import javax.ws.rs.core.MediaType;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -47,10 +40,7 @@ public class DroneRESTCommunication{
 //    }
 //  }
 
-  public static void main(String[] args) {
-    new Drone(1,999,"http://localhost:1337/drone_interface");
-    new Drone(2,998,"http://localhost:1337/drone_interface");
-  }
+
 
   /*
   * register a drone to the administrator server

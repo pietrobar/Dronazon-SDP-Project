@@ -1,20 +1,14 @@
 package dronesnetwork;
 
-import com.example.grpc.DroneRPC;
-import com.example.grpc.DroneServiceGrpc;
 import dronazon.Coordinate;
 import dronazon.Order;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import restserver.beans.DroneInfo;
-import sensorpm10.Buffer;
 import sensorpm10.BufferCls;
 import sensorpm10.PM10Simulator;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Scanner;
 
 /**
  * Created by Pietro on 09/05/2021
@@ -44,17 +38,23 @@ public class Drone {
     this.batteryCharge=100;
     pm10Sensor = new PM10Simulator(new BufferCls());
 
+    //Registration to the Server administrator
     //can be synchronous, until the registration the drone can't do anything
     while(!DroneRESTCommunication.registerDrone(this)){
       System.out.println("contacting server");
     }
-    DroneGRPCCommunication droneGRPC = new DroneGRPCCommunication(this);
+
+    //Insert in the network and start reception for GRPC communications
+    DroneGRPCCommunication droneGRPC = DroneGRPCCommunication.getInstance(this);
     Thread t = new Thread(droneGRPC);
     t.start();
-    //if(outcome) insertNetwork();
-    //todo: si registra al sistema tramite il server amministratore
-    //todo: inserimento nella rete decentralizzata
+
+
     //todo: fa partire il thread che raccoglie dati sull'inquinamento
+
+
+
+
 
   }
 
@@ -114,12 +114,7 @@ public class Drone {
 
   public synchronized void addDroneInfo(DroneInfo droneInfo) {
     drones.add(droneInfo);
-    drones.sort(new Comparator<DroneInfo>() {
-      @Override
-      public int compare(DroneInfo o1, DroneInfo o2) {
-        return Integer.compare(o1.getId(), o2.getId());
-      }
-    });
+    drones.sort(Comparator.comparingInt(DroneInfo::getId));
   }
 
   @Override
@@ -135,5 +130,10 @@ public class Drone {
             ", orders=" + orders +
             ", successor= " + DroneGRPCCommunication.successor(drones,id)+
             '}';
+  }
+
+  public static void main(String[] args) {
+    new Drone(1,999,"http://localhost:1337/drone_interface");
+
   }
 }

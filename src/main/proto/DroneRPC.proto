@@ -8,15 +8,34 @@ message AddDroneRequest {
   int32 id = 1;
   string ip = 2;
   int32 port = 3;
-  int32 xCoord = 4;
-  int32 yCoord = 5;
+  Coordinate position = 4;
 }
 
 message AddDroneResponse {
   int32 masterId = 1;
 }
 
+message Coordinate{
+  int32 xCoord = 1;
+  int32 yCoord = 2;
+}
+
+message OrderRequest{
+  string orderId = 1;
+  Coordinate pickUpPoint = 2;
+  Coordinate deliveryPoint = 3;
+}
+message OrderResponse{
+  string timestamp = 1;
+  Coordinate currentPos = 2;
+  int32 kilometers = 3;
+  float meanPollution = 4;
+  int32 battery = 5;
+}
+
 // Defining a Service, a Service can have multiple RPC operations
 service DroneService {
   rpc addDrone(AddDroneRequest) returns (AddDroneResponse);
+
+  rpc delivery(OrderRequest) returns (OrderResponse);
 }
