@@ -10,6 +10,7 @@ import restserver.beans.DroneInfo;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -117,7 +118,9 @@ public class DroneGRPCCommunication implements Runnable{
           responseObserver.onNext(response);
 
           //I have to add the drone into my list
-          drone.addDroneInfo(new DroneInfo(request.getId(),request.getIp(),request.getPort()));
+          DroneInfo di = new DroneInfo(request.getId(),request.getIp(),request.getPort());
+          di.setBattery(100);//needed by master if a drone is new to assign a delivery
+          drone.addDroneInfo(di);
           System.out.println("from reception: "+drone);
 
           responseObserver.onCompleted();
@@ -175,37 +178,61 @@ public class DroneGRPCCommunication implements Runnable{
   }
   /*Called by DroneOrderManager to assign a delivery to a free drone*/
   public void assignOrder(Order order){
-    for (DroneInfo di : drone.getDronesCopy()){
-
-      if(!occupiedDrones.contains(di)){
-        synchronized (occupiedDrones){
-          occupiedDrones.add(di);//todo: e' corretto?
-        }
-        //todo: cercare il drone libero piu' vicino (vedi documento del progetto)
-        //call GRPC to that drone
-        final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+di.getPort()).usePlaintext().build();
-        DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
-
-        DroneRPC.OrderRequest request = DroneRPC.OrderRequest.newBuilder()
-                .setOrderId(order.getId())
-                .setPickUpPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getPickUpPoint().getX()).setYCoord(order.getPickUpPoint().getY()))
-                .setDeliveryPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getDeliveryPoint().getX()).setYCoord(order.getDeliveryPoint().getY()))
-                .build();
-
-        DroneRPC.OrderResponse response = stub.delivery(request);//the answer will contains the statistics after the delivery. This call should take ~ 5 seconds
-
-        System.out.println(response);
-        //todo: response contiene le statistiche da inviare al server amministratore=> DroneRestCommunication.sendStats(request)
-
-
-        channel.shutdown();
-        synchronized (occupiedDrones){
-          occupiedDrones.remove(di);
-        }
-        break;
-      }
-
+    DroneInfo bestDrone=null;
+    do {
+      bestDrone = findBestDrone(order);
+    }while (bestDrone==null);
+    synchronized (occupiedDrones){
+      occupiedDrones.add(bestDrone);
     }
+    //todo: cercare il drone libero piu' vicino (vedi documento del progetto)
+    //call GRPC to that drone
+    final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+bestDrone.getPort()).usePlaintext().build();
+    DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+
+    DroneRPC.OrderRequest request = DroneRPC.OrderRequest.newBuilder()
+            .setOrderId(order.getId())
+            .setPickUpPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getPickUpPoint().getX()).setYCoord(order.getPickUpPoint().getY()))
+            .setDeliveryPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getDeliveryPoint().getX()).setYCoord(order.getDeliveryPoint().getY()))
+            .build();
+
+    DroneRPC.OrderResponse response = stub.delivery(request);//the answer will contains the statistics after the delivery. This call should take ~ 5 seconds
+
+    System.out.println(response);
+    //todo: response contiene le statistiche da inviare al server amministratore=> DroneRestCommunication.sendStats(request)
+
+
+    channel.shutdown();
+    synchronized (occupiedDrones){
+      occupiedDrones.remove(bestDrone);
+    }
+
+
+  }
+
+
+  private DroneInfo findBestDrone(Order order) {
+    //sorting criteria: free -> distance -> battery -> ID
+    List<DroneInfo> drones = drone.getDronesCopy();
+    drones.sort((o1, o2) -> {
+//        0: if (x==y)
+//       -1: if (x < y)
+//        1: if (x > y)
+      if(distance(o1.getPosition(),order.getPickUpPoint())>distance(o2.getPosition(),order.getPickUpPoint())) return  1;
+      else if(distance(o1.getPosition(),order.getPickUpPoint())<distance(o2.getPosition(),order.getPickUpPoint())) return -1;
+      else if(o1.getBattery() > o2.getBattery()) return 1;//distance is equal so compare by battery
+      else if(o1.getBattery() < o2.getBattery()) return -1;
+      else if(o1.getId()>o2.getId()) return 1;//distance and battery are equals => compare by id
+      else if(o1.getId()<o2.getId()) return -1;
+      return 0;
+    });
+    //from the sorted list I want a free drone
+    for (int i = drones.size()-1; i>=0; i--){
+      if(!occupiedDrones.contains(drones.get(i))){
+        return drones.get(i);
+      }
+    }
+    return null;
   }
 
   private int distance(Coordinate from,Coordinate to){

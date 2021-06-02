@@ -59,7 +59,7 @@ public class DroneRESTCommunication{
     ClientResponse response = webResource.type("application/json")
               .post(ClientResponse.class, droneInfoJson);
 
-
+    //todo: inizializzare la lista solamente se il codice e' 200
     if(response.getStatus()!=301){//   != NotModified if id already present
       List<DroneInfo> res = response.getEntity(new GenericType<List<DroneInfo>>(){});
       for (DroneInfo di : res){

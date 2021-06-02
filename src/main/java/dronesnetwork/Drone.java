@@ -29,6 +29,7 @@ public class Drone {
   private Coordinate position;
   private List<DroneInfo> drones;
 
+  //for the master to collect orders
   private List<Order> orders;
 
   public Drone(int id, int port, String administratorServerAddress) {
@@ -50,7 +51,7 @@ public class Drone {
     t.start();
 
 
-    //todo: fa partire il thread che raccoglie dati sull'inquinamento
+    //todo: fare partire il thread che raccoglie dati sull'inquinamento
 
 
 
@@ -61,10 +62,6 @@ public class Drone {
   public synchronized List<DroneInfo> getDronesCopy() {
     return new ArrayList<>(drones);
   }
-
-
-
-
 
   public int getId() {
     return id;
@@ -133,7 +130,7 @@ public class Drone {
   }
 
   public static void main(String[] args) {
-    new Drone(1,999,"http://localhost:1337/drone_interface");
+    new Drone(2,998,"http://localhost:1337/drone_interface");
 
   }
 }

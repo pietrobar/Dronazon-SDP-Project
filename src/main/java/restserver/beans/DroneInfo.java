@@ -16,6 +16,7 @@ public class DroneInfo implements Comparator<DroneInfo> {
   private int id;
   private String ip;
   private int port;
+  private int battery;
 
   private Coordinate position;
 
@@ -60,7 +61,13 @@ public class DroneInfo implements Comparator<DroneInfo> {
     this.position = position;
   }
 
+  public int getBattery() {
+    return battery;
+  }
 
+  public void setBattery(int battery) {
+    this.battery = battery;
+  }
 
   @Override
   public int compare(DroneInfo o1, DroneInfo o2) {
@@ -73,6 +80,8 @@ public class DroneInfo implements Comparator<DroneInfo> {
             "id=" + id +
             ", ip='" + ip + '\'' +
             ", port=" + port +
+            ", battery=" + battery +
+            ", position=" + position +
             '}';
   }
 }
