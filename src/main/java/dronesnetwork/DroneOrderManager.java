@@ -22,13 +22,8 @@ public class DroneOrderManager implements Runnable{
   List<Order> orders;
   Drone drone;
 
-  public static DroneOrderManager instance;
 
-  public static DroneOrderManager getInstance(Drone drone){
-    if (instance== null) instance = new DroneOrderManager(drone);
-    return instance;
-  }
-  private DroneOrderManager(Drone drone){
+  public DroneOrderManager(Drone drone){
     orders = new ArrayList<>();
     this.drone = drone;
   }
@@ -61,7 +56,7 @@ public class DroneOrderManager implements Runnable{
           Order order = gson.fromJson(receivedMessage, Order.class);
 
           System.out.println("ASSIGNING ORDER "+ receivedMessage);
-          DroneGRPCCommunication.getInstance(drone).assignOrder(order);
+          drone.getDroneGRPCManager().assignOrder(order);
         }
 
         public void connectionLost(Throwable cause) {

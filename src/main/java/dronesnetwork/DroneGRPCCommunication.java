@@ -12,24 +12,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Created by Pietro on 13/05/2021
  */
 public class DroneGRPCCommunication implements Runnable{
   private final Drone drone;
-  private static DroneGRPCCommunication instance;
-
   private final List<DroneInfo> occupiedDrones;
 
-  public static synchronized DroneGRPCCommunication getInstance(Drone drone){
-    if(instance==null) instance = new DroneGRPCCommunication(drone);
-    return instance;
-  }
 
-  private DroneGRPCCommunication(Drone drone){
+  public DroneGRPCCommunication(Drone drone){
     this.drone=drone;
-    occupiedDrones = new ArrayList<>();
+    occupiedDrones = new ArrayList<>();//everyone does it but is needed only in the master drone
   }
   /*
    * This thread will manage the communication in the drones network
@@ -50,42 +45,51 @@ public class DroneGRPCCommunication implements Runnable{
     if (drones.size()==1){
       drone.setMasterId(drone.getId());
       //if I'm the master i have to start a thread to manage the orders
-      Thread t1 = new Thread(DroneOrderManager.getInstance(drone));
+      Thread t1 = new Thread(new DroneOrderManager(drone));
       t1.start();
 
     }else{
       //otherwise broadcast to every other node
       List<Thread> threads = new ArrayList<>();
       for (DroneInfo node : drones){
-        Thread t = new Thread(){
-          @Override
-          public void run() {
-            final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+node.getPort()).usePlaintext().build();
-            //todo: gestire le eccezioni sulla connessione
-            DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+        if(node.getId()!=drone.getId()){
+          Thread t = new Thread(){
+            @Override
+            public void run() {
+              final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+node.getPort()).usePlaintext().build();
+              //todo: gestire le eccezioni sulla connessione
+              DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
 
-            DroneRPC.AddDroneRequest request = DroneRPC.AddDroneRequest.newBuilder()
-                    .setId(drone.getId())
-                    .setIp(drone.getIp())
-                    .setPort(drone.getPort())
-                    .setPosition(DroneRPC.Coordinate.newBuilder().setXCoord(drone.getPosition().getX()).setYCoord(drone.getPosition().getY()))
-                    .build();
+              DroneRPC.AddDroneRequest request = DroneRPC.AddDroneRequest.newBuilder()
+                      .setId(drone.getId())
+                      .setIp(drone.getIp())
+                      .setPort(drone.getPort())
+                      .setPosition(DroneRPC.Coordinate.newBuilder().setXCoord(drone.getPosition().getX()).setYCoord(drone.getPosition().getY()))
+                      .build();
 
-            DroneRPC.AddDroneResponse response = stub.addDrone(request);//receive an answer
-            //todo: aggiungere timeout .withDeadlineAfter(1, TimeUnit.SECONDS).
-            if (Context.current().isCancelled()) {
-              System.out.println("Drone didn't answer");
-              //I assume Drone is dead => Tell other drones one is dead
+              DroneRPC.AddDroneResponse response = stub.addDrone(request);//receive an answer
+              //todo: aggiungere timeout .withDeadlineAfter(1, TimeUnit.SECONDS).
+//            if (Context.current().isCancelled()) {
+//              System.out.println("Drone didn't answer");
+//              //I assume Drone is dead => todo:Tell other drones one is out
+//            }
+              if (response.getMasterId()!=-1)//all drones except master sends -1
+                drone.setMasterId(response.getMasterId());//no need to sync, just one response will contain the master ID
+
+
+              channel.shutdown();
             }
-            if (response.getMasterId()!=-1)//all drones except master sends -1
-              drone.setMasterId(response.getMasterId());//no need to sync, just one response will contain the master ID
-
-
-            channel.shutdown();
-          }
-        };
-        threads.add(t);
-        t.start();
+          };
+          threads.add(t);
+          t.start();
+        }
+      }
+      for (Thread t: threads){
+        try {
+          t.join();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
       }
       //todo: iniziare una elezione se non c'e' un master attivo, dopo aver aspettato il timeout!!
 
@@ -104,6 +108,7 @@ public class DroneGRPCCommunication implements Runnable{
   /*
   * Start a GRPC server to be able to receive messages from other drones*/
   public void reception(){
+    System.out.println(drone);
     try {
 
       Server server = ServerBuilder.forPort(drone.getPort()).addService(new DroneServiceGrpc.DroneServiceImplBase() {
@@ -120,6 +125,7 @@ public class DroneGRPCCommunication implements Runnable{
           //I have to add the drone into my list
           DroneInfo di = new DroneInfo(request.getId(),request.getIp(),request.getPort());
           di.setBattery(100);//needed by master if a drone is new to assign a delivery
+          di.setPosition(new Coordinate(request.getPosition().getXCoord(),request.getPosition().getYCoord()));
           drone.addDroneInfo(di);
           System.out.println("from reception: "+drone);
 

@@ -20,6 +20,11 @@ public class Drone {
   private final int port;
   private final String administratorServerAddress;
 
+  //Communication
+  private final DroneGRPCCommunication droneGRPCManager;
+  private DroneOrderManager droneOrderManager;
+  private DroneRESTCommunication droneRESTCommunicationManager;
+
   private int batteryCharge;
   private int masterId;
 
@@ -46,8 +51,8 @@ public class Drone {
     }
 
     //Insert in the network and start reception for GRPC communications
-    DroneGRPCCommunication droneGRPC = DroneGRPCCommunication.getInstance(this);
-    Thread t = new Thread(droneGRPC);
+    droneGRPCManager = new DroneGRPCCommunication(this);
+    Thread t = new Thread(droneGRPCManager);
     t.start();
 
 
@@ -107,7 +112,25 @@ public class Drone {
     return position;
   }
 
+  public DroneGRPCCommunication getDroneGRPCManager() {
+    return this.droneGRPCManager;
+  }
 
+  public DroneOrderManager getDroneOrderManager() {
+    return droneOrderManager;
+  }
+
+  public void setDroneOrderManager(DroneOrderManager droneOrderManager) {
+    this.droneOrderManager = droneOrderManager;
+  }
+
+  public DroneRESTCommunication getDroneRESTCommunicationManager() {
+    return droneRESTCommunicationManager;
+  }
+
+  public void setDroneRESTCommunicationManager(DroneRESTCommunication droneRESTCommunicationManager) {
+    this.droneRESTCommunicationManager = droneRESTCommunicationManager;
+  }
 
   public synchronized void addDroneInfo(DroneInfo droneInfo) {
     drones.add(droneInfo);

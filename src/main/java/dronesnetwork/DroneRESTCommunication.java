@@ -63,7 +63,7 @@ public class DroneRESTCommunication{
     if(response.getStatus()!=301){//   != NotModified if id already present
       List<DroneInfo> res = response.getEntity(new GenericType<List<DroneInfo>>(){});
       for (DroneInfo di : res){
-        if(di.getId()==drone.getId()) drone.setPosition(di.getPosition());
+        if(di.getId()==drone.getId()) drone.setPosition(di.getPosition());//get the position set from the server
       }
       drone.setDrones(res);
 

@@ -41,6 +41,7 @@ public class DronesInfoManager {
     }
     drones.add(di);
     di.setPosition(Coordinate.randomCoordinate());
+    di.setBattery(100);//a new drone will have a battery of 100
     drones.sort(Comparator.comparingInt(DroneInfo::getId));
     return drones;
   }
