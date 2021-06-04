@@ -137,6 +137,16 @@ public class Drone {
     drones.sort(Comparator.comparingInt(DroneInfo::getId));
   }
 
+  public DroneInfo successor() {
+    for (DroneInfo d : getDronesCopy()){
+      if(d.getId()>this.id){
+        return d;
+      }
+    }
+    //if no one has highest id my successor is the first Drone in the ordered list, and i'm the last one
+    return drones.get(0);
+  }
+
   @Override
   public String toString() {
     return "DRONE{" +
@@ -148,11 +158,12 @@ public class Drone {
             "position=" + position +",\n"+
             "drones=" + drones +",\n"+
             "orders=" + orders +",\n"+
-            "successor= " + DroneGRPCCommunication.successor(drones,id)+
+            "successor= " + successor()+
             '}';
   }
 
+
   public static void main(String[] args) {
-    new Drone(1,992,"http://localhost:1337/drone_interface");
+    new Drone(1,999,"http://localhost:1337/drone_interface");
   }
 }

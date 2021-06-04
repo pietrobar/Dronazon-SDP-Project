@@ -95,15 +95,7 @@ public class DroneGRPCCommunication implements Runnable{
 
     }
   }
-  public static DroneInfo successor(List<DroneInfo> drones, int id) {
-    for (DroneInfo d : drones){
-      if(d.getId()>id){
-        return d;
-      }
-    }
-    //if no one has highest id my successor is the first Drone in the ordered list, and i'm the last one
-    return drones.get(0);
-  }
+
 
   /*
   * Start a GRPC server to be able to receive messages from other drones*/
