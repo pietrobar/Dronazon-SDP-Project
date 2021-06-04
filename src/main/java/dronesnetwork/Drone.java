@@ -1,10 +1,8 @@
 package dronesnetwork;
 
 import dronazon.Coordinate;
-import dronazon.Order;
 import restserver.beans.DroneInfo;
-import sensorpm10.BufferCls;
-import sensorpm10.PM10Simulator;
+
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -28,21 +26,21 @@ public class Drone {
   private int batteryCharge;
   private int masterId;
 
-  private final PM10Simulator pm10Sensor;
+  //pollution
+  private final DronePollutionSensor dronePollutionSensor;
 
-  //info received from server admininstrator
+  //info received from server administrator
   private Coordinate position;
   private List<DroneInfo> drones;
 
-  //for the master to collect orders
-  private List<Order> orders;
+ private DroneStatsCollector droneStatsCollector;
 
   public Drone(int id, int port, String administratorServerAddress) {
     this.id = id;
     this.port = port;
     this.administratorServerAddress = administratorServerAddress;
     this.batteryCharge=100;
-    pm10Sensor = new PM10Simulator(new BufferCls());
+
 
     //Registration to the Server administrator
     //can be synchronous, until the registration the drone can't do anything
@@ -56,7 +54,9 @@ public class Drone {
     t.start();
 
 
-    //todo: fare partire il thread che raccoglie dati sull'inquinamento
+    dronePollutionSensor = new DronePollutionSensor();
+    Thread p = new Thread(dronePollutionSensor);
+    p.start();
 
 
 
@@ -132,9 +132,31 @@ public class Drone {
     this.droneRESTCommunicationManager = droneRESTCommunicationManager;
   }
 
+
+
+  public DronePollutionSensor getDronePollutionSensor() {
+    return dronePollutionSensor;
+  }
+
+  public DroneStatsCollector getDroneStatsCollector() {
+    return droneStatsCollector;
+  }
+  public void setDroneStatsCollector(DroneStatsCollector droneStatsCollector) {
+    this.droneStatsCollector = droneStatsCollector;
+  }
+
   public synchronized void addDroneInfo(DroneInfo droneInfo) {
     drones.add(droneInfo);
     drones.sort(Comparator.comparingInt(DroneInfo::getId));
+  }
+
+  public synchronized void updateDroneList(DroneInfo droneInfo) {
+    for (DroneInfo di : drones){
+      if (di.getId() == droneInfo.getId()){
+        di.setBattery(droneInfo.getBattery());
+        di.setPosition(droneInfo.getPosition());
+      }
+    }
   }
 
   public DroneInfo successor() {
@@ -157,13 +179,14 @@ public class Drone {
             "masterId=" + masterId +",\n"+
             "position=" + position +",\n"+
             "drones=" + drones +",\n"+
-            "orders=" + orders +",\n"+
             "successor= " + successor()+
             '}';
   }
 
 
   public static void main(String[] args) {
-    new Drone(1,999,"http://localhost:1337/drone_interface");
+    new Drone(2,998,"http://localhost:1337/drone_interface");
   }
+
+
 }

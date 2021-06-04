@@ -14,14 +14,14 @@ import java.util.Comparator;
 @XmlRootElement
 public class Statistic implements Comparator<Statistic> {
   private String timestamp;
-  private int meanDelivery;
-  private int meanKilometers;
-  private double meanPollution;
-  private int meanBattery;
+  private float meanDelivery;
+  private float meanKilometers;
+  private float meanPollution;
+  private float meanBattery;
 
   public Statistic(){}
 
-  public Statistic(String timestamp, int meanDelivery, int meanKilometers, double meanPollution, int meanBattery) {
+  public Statistic(String timestamp, float meanDelivery, float meanKilometers, float meanPollution, float meanBattery) {
     this.timestamp = timestamp;
     this.meanDelivery = meanDelivery;
     this.meanKilometers = meanKilometers;
@@ -37,35 +37,35 @@ public class Statistic implements Comparator<Statistic> {
     this.timestamp = timestamp;
   }
 
-  public int getMeanDelivery() {
+  public float getMeanDelivery() {
     return meanDelivery;
   }
 
-  public void setMeanDelivery(int meanDelivery) {
+  public void setMeanDelivery(float meanDelivery) {
     this.meanDelivery = meanDelivery;
   }
 
-  public int getMeanKilometers() {
+  public float getMeanKilometers() {
     return meanKilometers;
   }
 
-  public void setMeanKilometers(int meanKilometers) {
+  public void setMeanKilometers(float meanKilometers) {
     this.meanKilometers = meanKilometers;
   }
 
-  public double getMeanPollution() {
+  public float getMeanPollution() {
     return meanPollution;
   }
 
-  public void setMeanPollution(double meanPollution) {
+  public void setMeanPollution(float meanPollution) {
     this.meanPollution = meanPollution;
   }
 
-  public int getMeanBattery() {
+  public float getMeanBattery() {
     return meanBattery;
   }
 
-  public void setMeanBattery(int meanBattery) {
+  public void setMeanBattery(float meanBattery) {
     this.meanBattery = meanBattery;
   }
 

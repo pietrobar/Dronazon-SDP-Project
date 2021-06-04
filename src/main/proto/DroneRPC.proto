@@ -29,7 +29,7 @@ message OrderResponse{
   string timestamp = 1;
   Coordinate currentPos = 2;
   int32 kilometers = 3;
-  float meanPollution = 4;
+  repeated float pollutionValues = 4;
   int32 battery = 5;
 }
 

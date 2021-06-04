@@ -51,14 +51,13 @@ public class DroneOrderManager implements Runnable{
         /*each time a new order arrives a new thread is created that will manage the assignment of the order*/
         public void messageArrived(String topic, MqttMessage message) {
           String receivedMessage = new String(message.getPayload());
-          System.out.println(clientId +" Received a Message! - Callback "+
-                  "\n\tMessage: " + receivedMessage);
+          System.out.println("Received a Message! - " + receivedMessage);
           //{"id":"79045252-c2c5-4edb-aa3e-4b841f1fcab7","pickUpPoint":{"x":8,"y":0},"deliveryPoint":{"x":6,"y":5}}
           //I have to save my order
           Gson gson = new Gson();
           Order order = gson.fromJson(receivedMessage, Order.class);
           addOrder(order);//useful to keep track of how many orders needs to be delivered
-          System.out.println("ASSIGNING ORDER "+ receivedMessage);
+
           drone.getDroneGRPCManager().assignOrder(order, instance);
         }
 

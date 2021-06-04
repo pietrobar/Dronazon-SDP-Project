@@ -47,16 +47,16 @@ public class StatsManager {
     return getStats().subList(stats.size()-n, stats.size()-1);
   }
 
-  public int getDeliveriesBetweenTimestamps(String t1, String t2) {
+  public float getDeliveriesBetweenTimestamps(String t1, String t2) {
     return valueBetween(t1, t2, "deliveries");
   }
 
-  public int getKilometersBetweenTimestamps(String t1, String t2) {
+  public float getKilometersBetweenTimestamps(String t1, String t2) {
     return valueBetween(t1, t2, "km");
   }
 
-  private int valueBetween(String t1, String t2, String type) {
-    List<Integer> meanValue = new ArrayList<>();
+  private float valueBetween(String t1, String t2, String type) {
+    List<Float> meanValue = new ArrayList<>();
     for(Statistic s : getStats()){
       System.out.println(s);
       LocalDateTime ts = Statistic.extractDateTime(s.getTimestamp());
@@ -70,8 +70,16 @@ public class StatsManager {
           meanValue.add(s.getMeanDelivery());
       }
     }
-    int div=meanValue.size();
-    return meanValue.stream().mapToInt(Integer::intValue).sum()/div;
+
+    return mean(meanValue);
+  }
+  private float mean(List<Float> values){
+    float res;
+    float partial=0;
+    for (float n : values){
+      partial+=n;
+    }
+    return partial/values.size();
   }
 
 }

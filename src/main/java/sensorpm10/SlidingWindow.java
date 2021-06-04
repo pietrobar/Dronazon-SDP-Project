@@ -6,10 +6,9 @@ import java.util.List;
 /**
  * Created by Pietro on 12/05/2021
  */
-public class BufferCls implements Buffer{
+public class SlidingWindow implements Buffer{
   private final List<Measurement> slidingWindow;//max size of 8, 50% overlap
-  private double currentMean=0;
-  public BufferCls() {
+  public SlidingWindow() {
     slidingWindow = new ArrayList<>();
   }
 
@@ -17,30 +16,24 @@ public class BufferCls implements Buffer{
   public synchronized void addMeasurement(Measurement m) {
     slidingWindow.add(m);
     if(slidingWindow.size()==8){
-      slidingWindow.subList(0, 4).clear();
-
-      calculateMean();
-
+      notify();
     }
-  }
-
-  private void calculateMean() {
-    double meanValue=0;
-    for(Measurement m : slidingWindow){
-      meanValue+= m.getValue();
-    }
-    currentMean=meanValue;
-
-  }
-
-  public double getCurrentMean() {
-    return currentMean;
   }
 
   @Override
   public synchronized List<Measurement> readAllAndClean() {
     List<Measurement> res = new ArrayList<>(slidingWindow);
-    slidingWindow.clear();
+    slidingWindow.subList(0, 4).clear();
     return res;
+  }
+
+  public static void main(String[] args) {
+    PM10Simulator pm10Simulator = new PM10Simulator(new SlidingWindow());
+    pm10Simulator.start();
+
+  }
+
+  public int size() {
+    return slidingWindow.size();
   }
 }

@@ -9,13 +9,10 @@ import io.grpc.stub.StreamObserver;
 import restserver.beans.DroneInfo;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Created by Pietro on 13/05/2021
@@ -50,7 +47,8 @@ public class DroneGRPCCommunication implements Runnable{
       //if I'm the master i have to start a thread to manage the orders
       Thread t1 = new Thread(new DroneOrderManager(drone));
       t1.start();
-
+      drone.setDroneStatsCollector(new DroneStatsCollector());
+      //todo: cose da fare anche quando il master viene eletto
     }else{
       //otherwise broadcast to every other node
       List<Thread> threads = new ArrayList<>();
@@ -145,17 +143,20 @@ public class DroneGRPCCommunication implements Runnable{
           drone.setBatteryCharge(drone.getBatteryCharge()-10);
           DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+          //take pollution values
+          List<Float>  list = drone.getDronePollutionSensor().getMeanList();
+          drone.getDronePollutionSensor().clearMeanList();
+
           DroneRPC.OrderResponse response = DroneRPC.OrderResponse.newBuilder()
                   .setTimestamp(LocalDateTime.now().format(formatter))
                   .setCurrentPos(request.getDeliveryPoint())
                   .setKilometers(d1+d2)
-                  .setMeanPollution(1)
+                  .addAllPollutionValues(list)
                   .setBattery(drone.getBatteryCharge())
                   .build();
 
-          //todo: finire di calcolare le altre informazioni (vedi documento progetto)
           //todo: terminata questa funzione se il livello di batteria poco devo uscire dalla rete
-          System.out.println("CONSEGNA EFFETTUATA" + response);
+          System.out.println("CONSEGNA EFFETTUATA");
           responseObserver.onNext(response);
 
           responseObserver.onCompleted();
@@ -182,7 +183,7 @@ public class DroneGRPCCommunication implements Runnable{
   /*Called by DroneOrderManager to assign a delivery to a free drone*/
   public void assignOrder(Order order, DroneOrderManager droneOrderManager){
     synchronized (this){
-      while(drone.getDronesCopy().size()==occupiedDrones.size()) {//all drones are occupied
+      while(findBestDrone(order)==null) {//all drones are occupied
         try {
           wait();
         } catch (InterruptedException e) {
@@ -207,8 +208,18 @@ public class DroneGRPCCommunication implements Runnable{
 
       DroneRPC.OrderResponse response = stub.delivery(request);//the answer will contains the statistics after the delivery. This call should take ~ 5 seconds
 
-      System.out.println(response);
-      //todo: response contiene le statistiche da inviare al server amministratore=> DroneRestCommunication.sendStats(request)
+      //COLLECT STATS
+      DroneStatsCollector dsc = drone.getDroneStatsCollector();
+      dsc.addDelivery(bestDrone.getId());
+      dsc.addKilometerMean(response.getKilometers());
+      dsc.addBattery(response.getBattery());
+      dsc.addPollutionValues(response.getPollutionValuesList());//all sync in dsc
+
+
+      //DRONE LIST UPDATE
+      bestDrone.setPosition(new Coordinate(response.getCurrentPos().getXCoord(),response.getCurrentPos().getYCoord()));
+      bestDrone.setBattery(response.getBattery());
+      drone.updateDroneList(bestDrone);
 
       //once the order is done I want to remove it from the list
       droneOrderManager.removeOrder(order);
