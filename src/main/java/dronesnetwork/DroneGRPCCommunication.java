@@ -9,6 +9,9 @@ import io.grpc.stub.StreamObserver;
 import restserver.beans.DroneInfo;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -140,8 +143,10 @@ public class DroneGRPCCommunication implements Runnable{
 
           drone.setPosition(c2);
           drone.setBatteryCharge(drone.getBatteryCharge()-10);
+          DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
           DroneRPC.OrderResponse response = DroneRPC.OrderResponse.newBuilder()
-                  .setTimestamp("todo")//todo
+                  .setTimestamp(LocalDateTime.now().format(formatter))
                   .setCurrentPos(request.getDeliveryPoint())
                   .setKilometers(d1+d2)
                   .setMeanPollution(1)
