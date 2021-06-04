@@ -139,21 +139,20 @@ public class Drone {
 
   @Override
   public String toString() {
-    return "Drone{" +
-            "id=" + id +
-            ", ip='" + ip + '\'' +
-            ", port=" + port +
-            ", batteryCharge=" + batteryCharge +
-            ", masterId=" + masterId +
-            ", position=" + position +
-            ", drones=" + drones +
-            ", orders=" + orders +
-            ", successor= " + DroneGRPCCommunication.successor(drones,id)+
+    return "DRONE{" +
+            "id=" + id +",\n"+
+            "ip='" + ip  +",\n"+
+            "port=" + port +",\n"+
+            "batteryCharge=" + batteryCharge +",\n"+
+            "masterId=" + masterId +",\n"+
+            "position=" + position +",\n"+
+            "drones=" + drones +",\n"+
+            "orders=" + orders +",\n"+
+            "successor= " + DroneGRPCCommunication.successor(drones,id)+
             '}';
   }
 
   public static void main(String[] args) {
-    new Drone(2,998,"http://localhost:1337/drone_interface");
-
+    new Drone(1,992,"http://localhost:1337/drone_interface");
   }
 }

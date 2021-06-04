@@ -22,16 +22,18 @@ public class DroneOrderManager implements Runnable{
   List<Order> orders;
   Drone drone;
 
-
+  private final DroneOrderManager instance;
   public DroneOrderManager(Drone drone){
+    instance = this;
     orders = new ArrayList<>();
     this.drone = drone;
   }
 
-  public synchronized void addOrder(Order order){
+  private synchronized void addOrder(Order order){
     this.orders.add(order);
   }
 
+  public synchronized void removeOrder(Order order){ this.orders.remove(order); }
 
   @Override
   public void run() {
@@ -46,6 +48,7 @@ public class DroneOrderManager implements Runnable{
       client.connect(connOpts);
 
       client.setCallback(new MqttCallback() {
+        /*each time a new order arrives a new thread is created that will manage the assignment of the order*/
         public void messageArrived(String topic, MqttMessage message) {
           String receivedMessage = new String(message.getPayload());
           System.out.println(clientId +" Received a Message! - Callback "+
@@ -54,9 +57,9 @@ public class DroneOrderManager implements Runnable{
           //I have to save my order
           Gson gson = new Gson();
           Order order = gson.fromJson(receivedMessage, Order.class);
-
+          addOrder(order);//useful to keep track of how many orders needs to be delivered
           System.out.println("ASSIGNING ORDER "+ receivedMessage);
-          drone.getDroneGRPCManager().assignOrder(order);
+          drone.getDroneGRPCManager().assignOrder(order, instance);
         }
 
         public void connectionLost(Throwable cause) {

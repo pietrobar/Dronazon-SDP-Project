@@ -183,36 +183,45 @@ public class DroneGRPCCommunication implements Runnable{
     }
   }
   /*Called by DroneOrderManager to assign a delivery to a free drone*/
-  public void assignOrder(Order order){
-    DroneInfo bestDrone=null;
-    do {
-      bestDrone = findBestDrone(order);
-    }while (bestDrone==null);
-    synchronized (occupiedDrones){
-      occupiedDrones.add(bestDrone);
+  public void assignOrder(Order order, DroneOrderManager droneOrderManager){
+    synchronized (this){
+      while(drone.getDronesCopy().size()==occupiedDrones.size()) {//all drones are occupied
+        try {
+          wait();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+      //here I'm sure there is at least one free drone
+      DroneInfo bestDrone = findBestDrone(order);//this could be null BUT drone.getDronesCopy().size()==occupiedDrones.size() assure it cannot be null
+      synchronized (occupiedDrones){//can't deadlock with synchronized(this) -> add is not dependant on anything
+        occupiedDrones.add(bestDrone);
+      }
+
+      //call GRPC to that drone
+      final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+bestDrone.getPort()).usePlaintext().build();
+      DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+
+      DroneRPC.OrderRequest request = DroneRPC.OrderRequest.newBuilder()
+              .setOrderId(order.getId())
+              .setPickUpPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getPickUpPoint().getX()).setYCoord(order.getPickUpPoint().getY()))
+              .setDeliveryPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getDeliveryPoint().getX()).setYCoord(order.getDeliveryPoint().getY()))
+              .build();
+
+      DroneRPC.OrderResponse response = stub.delivery(request);//the answer will contains the statistics after the delivery. This call should take ~ 5 seconds
+
+      System.out.println(response);
+      //todo: response contiene le statistiche da inviare al server amministratore=> DroneRestCommunication.sendStats(request)
+
+      //once the order is done I want to remove it from the list
+      droneOrderManager.removeOrder(order);
+
+      synchronized (occupiedDrones){
+        occupiedDrones.remove(bestDrone);
+      }
+      //freed one drone I can notify his freedom
+      notify();
     }
-    //todo: cercare il drone libero piu' vicino (vedi documento del progetto)
-    //call GRPC to that drone
-    final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+bestDrone.getPort()).usePlaintext().build();
-    DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
-
-    DroneRPC.OrderRequest request = DroneRPC.OrderRequest.newBuilder()
-            .setOrderId(order.getId())
-            .setPickUpPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getPickUpPoint().getX()).setYCoord(order.getPickUpPoint().getY()))
-            .setDeliveryPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getDeliveryPoint().getX()).setYCoord(order.getDeliveryPoint().getY()))
-            .build();
-
-    DroneRPC.OrderResponse response = stub.delivery(request);//the answer will contains the statistics after the delivery. This call should take ~ 5 seconds
-
-    System.out.println(response);
-    //todo: response contiene le statistiche da inviare al server amministratore=> DroneRestCommunication.sendStats(request)
-
-
-    channel.shutdown();
-    synchronized (occupiedDrones){
-      occupiedDrones.remove(bestDrone);
-    }
-
 
   }
 
