@@ -126,6 +126,7 @@ public class DroneGRPCCommunication implements Runnable{
         /*Receiving the order to deliver*/
         @Override
         public void delivery(DroneRPC.OrderRequest request, StreamObserver<DroneRPC.OrderResponse> responseObserver) {
+          drone.setDelivering(true);
           try {
             Thread.sleep(5000);
           } catch (InterruptedException e) {
@@ -158,10 +159,14 @@ public class DroneGRPCCommunication implements Runnable{
 
           responseObserver.onCompleted();
 
+          drone.setDelivering(false);
           if(drone.getBatteryCharge()<15 || drone.isQuitting()){
             drone.setQuit(true);//in case is < 15
-            leaveNetwork();
+            synchronized (drone.terminationObj){
+              drone.terminationObj.notify();
+            }
           }
+
 
         }
       }).build();
@@ -183,18 +188,12 @@ public class DroneGRPCCommunication implements Runnable{
     }
   }
 
-  private void leaveNetwork() {
-    if(drone.getId()==drone.getMasterId()){//if I'm the master
-
-    }
-  }
-
   /*Called by a thread create by DroneOrderManager's callback to assign a delivery to a free drone*/
   public void assignOrder(Order order, DroneOrderManager droneOrderManager){
-    synchronized (this){
+    synchronized (drone.getDroneOrderManager()){
       while(findBestDrone(order)==null) {//all drones are occupied
         try {
-          wait();
+          drone.getDroneOrderManager().wait();
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
@@ -233,11 +232,13 @@ public class DroneGRPCCommunication implements Runnable{
       //once the order is done I want to remove it from the list
       droneOrderManager.removeOrder(order);
 
+      channel.shutdown();
+
       synchronized (occupiedDrones){
         occupiedDrones.remove(bestDrone);
       }
       //freed one drone I can notify his freedom
-      notify();
+      drone.getDroneOrderManager().notifyAll();
     }
 
   }

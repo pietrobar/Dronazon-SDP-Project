@@ -36,8 +36,11 @@ public class Drone {
   private List<DroneInfo> drones;
 
   private DroneStatsCollector droneStatsCollector;
+  ScheduledExecutorService exec;
+  private boolean quit=false;
+  private boolean delivering=false;
 
-  private boolean quit;
+  public final Object terminationObj = new Object();
 
   public Drone(int id, int port) {
     this.id = id;
@@ -70,17 +73,54 @@ public class Drone {
     Thread p = new Thread(dronePollutionSensor);
     p.start();
 
+    synchronized (terminationObj){
+      terminationObj.wait();//droneGRPCCommunication will tell me when it's time
+    }
+    leaveNetwork();
+
   }
 
   private void justBecomeMaster(){
     //manage orders
-    Thread t1 = new Thread(new DroneOrderManager(this));
+    droneOrderManager = new DroneOrderManager(this);
+    Thread t1 = new Thread(droneOrderManager);
     t1.start();
 
     //starts a new thread to send statistics to server administrator
     droneStatsCollector=new DroneStatsCollector(this);
-    ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+    exec = Executors.newSingleThreadScheduledExecutor();
     exec.scheduleAtFixedRate(droneStatsCollector::generateAndSendStatistic, 0, 10, TimeUnit.SECONDS);
+  }
+
+  public void leaveNetwork() {
+    if(!this.isDelivering()){//if is delivering this method will be called by delivery in grpc server
+      if(this.getId()==this.getMasterId()){//if I'm the master
+        //1 - my delivery is done
+        //2 - disconnect from MQTT broker
+        synchronized (droneOrderManager){
+          droneOrderManager.notify();
+        }
+        //3 - wait for assign of left deliveries
+        synchronized (droneOrderManager){
+          while (droneOrderManager.getOrders().size()>0){//while there are still orders to deliver
+            try {
+              droneOrderManager.wait();
+            } catch (InterruptedException e) {
+              e.printStackTrace();
+            }
+          }
+        }
+        //4 - close the communications with other drones
+        //5 - send statistics to server administrator
+        exec.shutdown();
+        droneStatsCollector.generateAndSendStatistic();
+        //6 - Ask server admin to exit the system
+        DroneRESTCommunication.quit(this);
+
+        System.out.println("\033[0;35m"+"BYE BYE"+"\033[0m");
+        System.exit(0);
+      }
+    }
   }
 
   public synchronized List<DroneInfo> getDronesCopy() {
@@ -161,6 +201,14 @@ public class Drone {
 
   public void setDroneStatsCollector(DroneStatsCollector droneStatsCollector) {
     this.droneStatsCollector = droneStatsCollector;
+  }
+
+  public synchronized boolean isDelivering() {
+    return delivering;
+  }
+
+  public synchronized void setDelivering(boolean delivering) {
+    this.delivering = delivering;
   }
 
   public synchronized void addDroneInfo(DroneInfo droneInfo) {

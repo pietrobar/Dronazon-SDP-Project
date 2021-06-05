@@ -92,4 +92,20 @@ public class DroneRESTCommunication{
       System.out.println("stat sent successfully: "+statsJson);
     }
   }
+
+  public static void quit(Drone drone) {
+    Client client = Client.create();
+
+    WebResource webResource = client
+            .resource(drone.getAdministratorServerAddress() + "/remove-drone");
+
+    Gson gson = new Gson();
+    String droneInfoJson = gson.toJson(new DroneInfo(drone.getId(),drone.getIp(),drone.getPort()));
+    ClientResponse response = webResource.type("application/json")
+            .delete(ClientResponse.class, droneInfoJson);
+
+    if(response.getStatus()!=200) {
+      System.err.println("Something went wrong with quitting");
+    }
+  }
 }

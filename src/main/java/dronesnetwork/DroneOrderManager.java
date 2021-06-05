@@ -5,6 +5,7 @@ import dronazon.Order;
 import org.eclipse.paho.client.mqttv3.*;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -62,7 +63,7 @@ public class DroneOrderManager implements Runnable{
         }
 
         public void connectionLost(Throwable cause) {
-          System.out.println(clientId + " Connectionlost! cause:" + cause.getMessage()+ "-  Thread PID: " + Thread.currentThread().getId());
+          cause.printStackTrace();
         }
 
         public void deliveryComplete(IMqttDeliveryToken token) {
@@ -73,9 +74,12 @@ public class DroneOrderManager implements Runnable{
       client.subscribe(topic,qos);
       System.out.println(clientId + " Subscribed to topics : " + topic);
 
-      //todo: la notify deve essere fatta quando il drone master deve uscire dalla rete
-
-      //client.disconnect();
+      synchronized (this) {
+        while (!drone.isQuitting()){
+          wait();//called just one time => while could be if
+        }
+        client.disconnect();
+      }
 
     } catch (MqttException me ) {
       System.out.println("reason " + me.getReasonCode());
@@ -84,6 +88,12 @@ public class DroneOrderManager implements Runnable{
       System.out.println("cause " + me.getCause());
       System.out.println("excep " + me);
       me.printStackTrace();
+    } catch (InterruptedException e) {
+      e.printStackTrace();
     }
+  }
+
+  public synchronized List<Order> getOrders() {
+    return new ArrayList<>(orders);
   }
 }
