@@ -21,7 +21,6 @@ public class Drone {
   //Communication
   private final DroneGRPCCommunication droneGRPCManager;
   private DroneOrderManager droneOrderManager;
-  private DroneRESTCommunication droneRESTCommunicationManager;
 
   private int batteryCharge;
   private int masterId;
@@ -124,13 +123,6 @@ public class Drone {
     this.droneOrderManager = droneOrderManager;
   }
 
-  public DroneRESTCommunication getDroneRESTCommunicationManager() {
-    return droneRESTCommunicationManager;
-  }
-
-  public void setDroneRESTCommunicationManager(DroneRESTCommunication droneRESTCommunicationManager) {
-    this.droneRESTCommunicationManager = droneRESTCommunicationManager;
-  }
 
 
 

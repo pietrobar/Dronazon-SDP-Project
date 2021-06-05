@@ -13,16 +13,20 @@ import java.util.concurrent.TimeUnit;
  * Created by Pietro on 04/06/2021
  */
 public class DroneStatsCollector {
-  private final Map<Integer,Integer> deliveries;//map ID -> number of deliveries
+  private final Map<Integer,Float> deliveries;//map ID -> number of deliveries
   private final List<Float> kilometers;
   private final List<Float> pollution;
   private final List<Float> battery;
 
-  public DroneStatsCollector() {
+  private final Drone drone;
+
+  public DroneStatsCollector(Drone drone) {
     this.deliveries = new Hashtable<>();
     this.kilometers = new ArrayList<>();
     this.pollution = new ArrayList<>();
     this.battery = new ArrayList<>();
+
+    this.drone = drone;
 
     //starts a new thread to send statistics to server administrator
     ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
@@ -31,13 +35,8 @@ public class DroneStatsCollector {
 
 
       //DELIVERIES
-      List<Integer> ds = new ArrayList<>(deliveries.values());
-      float meanDeliveries;
-      float partial=0;
-      for (int n : ds){
-        partial+=n;
-      }
-      meanDeliveries = partial/ds.size();
+      List<Float> ds = new ArrayList<>(deliveries.values());
+      float meanDeliveries = mean(ds);
 
       //MEAN KILOMETERS
       float meanKm = mean(kilometers);
@@ -48,12 +47,18 @@ public class DroneStatsCollector {
       //MEAN BATTERY
       float meanBattery = mean(battery);
 
-      Statistic statistic = new Statistic(LocalDateTime.now().format(formatter), meanDeliveries, meanKm ,meanPollution,meanBattery);
-      System.out.println(statistic);
+      if(meanKm!=0 && meanPollution!=0 && meanBattery!=0 &&meanDeliveries!=0){
+        Statistic statistic = new Statistic(LocalDateTime.now().format(formatter), meanDeliveries, meanKm ,meanPollution,meanBattery);
+        DroneRESTCommunication.sendStatistic(drone,statistic);
+      }
+
     }, 0, 10, TimeUnit.SECONDS);
   }
 
   private float mean(List<Float> values){
+    synchronized (this){
+      if (values.size()==0) return 0;
+    }
     float partial=0;
     for (float n : values){
       partial+=n;
@@ -77,8 +82,8 @@ public class DroneStatsCollector {
 
   public synchronized void addDelivery(int id) {
     if (deliveries.containsKey(id)){
-      deliveries.put(id,deliveries.get(id)+1);
+      deliveries.put(id,deliveries.get(id)+1f);
     }
-    deliveries.put(id,1);
+    deliveries.put(id,1f);
   }
 }

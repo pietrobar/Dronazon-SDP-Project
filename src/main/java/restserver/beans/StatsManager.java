@@ -43,7 +43,8 @@ public class StatsManager {
     this.stats = stats;
   }
 
-  public List<Statistic> getNStats(int n) {
+  public synchronized List<Statistic> getNStats(int n) {
+    if(stats.size()<n) return stats;
     return getStats().subList(stats.size()-n, stats.size()-1);
   }
 
@@ -58,7 +59,7 @@ public class StatsManager {
   private float valueBetween(String t1, String t2, String type) {
     List<Float> meanValue = new ArrayList<>();
     for(Statistic s : getStats()){
-      System.out.println(s);
+
       LocalDateTime ts = Statistic.extractDateTime(s.getTimestamp());
       LocalDateTime ts1 = Statistic.extractDateTime(t1);
       LocalDateTime ts2 = Statistic.extractDateTime(t2);
@@ -74,6 +75,7 @@ public class StatsManager {
     return mean(meanValue);
   }
   private float mean(List<Float> values){
+    if (values.size()==0) return 0f;
     float res;
     float partial=0;
     for (float n : values){

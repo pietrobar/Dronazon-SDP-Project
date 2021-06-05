@@ -47,7 +47,7 @@ public class DroneGRPCCommunication implements Runnable{
       //if I'm the master i have to start a thread to manage the orders
       Thread t1 = new Thread(new DroneOrderManager(drone));
       t1.start();
-      drone.setDroneStatsCollector(new DroneStatsCollector());
+      drone.setDroneStatsCollector(new DroneStatsCollector(drone));
       //todo: cose da fare anche quando il master viene eletto
     }else{
       //otherwise broadcast to every other node

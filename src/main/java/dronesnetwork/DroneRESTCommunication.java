@@ -10,6 +10,8 @@ import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
 import restserver.beans.DroneInfo;
+import restserver.beans.Statistic;
+
 import java.util.List;
 
 /**
@@ -75,5 +77,19 @@ public class DroneRESTCommunication{
   }
 
 
+  public static void sendStatistic(Drone drone, Statistic statistic) {
+    Client client = Client.create();
 
+    WebResource webResource = client
+            .resource(drone.getAdministratorServerAddress() + "/add-stat");
+
+    Gson gson = new Gson();
+    String statsJson = gson.toJson(statistic);
+    ClientResponse response = webResource.type("application/json")
+            .post(ClientResponse.class, statsJson);
+
+    if(response.getStatus()==200) {
+      System.out.println("stat sent successfully: "+statsJson);
+    }
+  }
 }
