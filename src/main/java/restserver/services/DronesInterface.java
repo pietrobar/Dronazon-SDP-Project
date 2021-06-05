@@ -7,10 +7,7 @@ package restserver.services;
 import com.google.gson.Gson;
 import restserver.beans.*;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 import java.util.List;
 
@@ -28,6 +25,14 @@ public class DronesInterface {
     return res!=null ? Response.ok(res).build() : Response.notModified().build();
   }
 
+  @DELETE
+  @Path("/remove-drone")
+  @Consumes({"application/json", "application/xml"})
+  public Response removeDrone(DroneInfo droneInfo) {
+    DronesInfoManager.getInstance().remove(droneInfo);
+    return Response.ok().build();
+  }
+
   @POST
   @Path("/add-stat")
   @Consumes({"application/json", "application/xml"})
@@ -35,4 +40,6 @@ public class DronesInterface {
     StatsManager.getInstance().add(statistic);
     return Response.ok().build();
   }
+
+
 }

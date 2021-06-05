@@ -45,4 +45,8 @@ public class DronesInfoManager {
     drones.sort(Comparator.comparingInt(DroneInfo::getId));
     return drones;
   }
+
+  public synchronized void remove(DroneInfo droneInfo) {
+    drones.removeIf(di -> droneInfo.getId() == di.getId());
+  }
 }
