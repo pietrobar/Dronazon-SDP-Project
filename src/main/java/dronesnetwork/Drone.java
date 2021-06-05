@@ -7,6 +7,9 @@ import restserver.beans.DroneInfo;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Pietro on 09/05/2021
@@ -16,31 +19,33 @@ public class Drone {
   private final int id;
   private final String ip="localhost";
   private final int port;
-  private final String administratorServerAddress;
+  private final String administratorServerAddress="http://localhost:1337/drone_interface";
 
   //Communication
-  private final DroneGRPCCommunication droneGRPCManager;
+  private DroneGRPCCommunication droneGRPCManager;
   private DroneOrderManager droneOrderManager;
 
   private int batteryCharge;
   private int masterId;
 
   //pollution
-  private final DronePollutionSensor dronePollutionSensor;
+  private DronePollutionSensor dronePollutionSensor;
 
   //info received from server administrator
   private Coordinate position;
   private List<DroneInfo> drones;
 
- private DroneStatsCollector droneStatsCollector;
+  private DroneStatsCollector droneStatsCollector;
 
-  public Drone(int id, int port, String administratorServerAddress) {
+  private boolean quit;
+
+  public Drone(int id, int port) {
     this.id = id;
     this.port = port;
-    this.administratorServerAddress = administratorServerAddress;
     this.batteryCharge=100;
+  }
 
-
+  public void startDrone() throws InterruptedException {
     //Registration to the Server administrator
     //can be synchronous, until the registration the drone can't do anything
     while(!DroneRESTCommunication.registerDrone(this)){
@@ -50,17 +55,32 @@ public class Drone {
     //Insert in the network and start reception for GRPC communications
     droneGRPCManager = new DroneGRPCCommunication(this);
     Thread t = new Thread(droneGRPCManager);
-    t.start();
+
+    synchronized (this){
+      t.start();//this will call the notify
+      this.wait();//wait for DroneGRPCCommunication to tell me he has finished insertNetwork()
+    }
+
+    if(this.id==this.getMasterId()){
+      justBecomeMaster();
+    }
 
 
     dronePollutionSensor = new DronePollutionSensor();
     Thread p = new Thread(dronePollutionSensor);
     p.start();
 
+  }
 
+  private void justBecomeMaster(){
+    //manage orders
+    Thread t1 = new Thread(new DroneOrderManager(this));
+    t1.start();
 
-
-
+    //starts a new thread to send statistics to server administrator
+    droneStatsCollector=new DroneStatsCollector(this);
+    ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+    exec.scheduleAtFixedRate(droneStatsCollector::generateAndSendStatistic, 0, 10, TimeUnit.SECONDS);
   }
 
   public synchronized List<DroneInfo> getDronesCopy() {
@@ -99,11 +119,11 @@ public class Drone {
     this.batteryCharge = batteryCharge;
   }
 
-  public int getMasterId() {
+  public synchronized int getMasterId() {
     return masterId;
   }
 
-  public void setMasterId(int masterId) {
+  public synchronized void setMasterId(int masterId) {
     this.masterId = masterId;
   }
 
@@ -123,8 +143,13 @@ public class Drone {
     this.droneOrderManager = droneOrderManager;
   }
 
+  public synchronized boolean isQuitting() {
+    return quit;
+  }
 
-
+  public synchronized void setQuit(boolean quit) {
+    this.quit = quit;
+  }
 
   public DronePollutionSensor getDronePollutionSensor() {
     return dronePollutionSensor;
@@ -133,6 +158,7 @@ public class Drone {
   public DroneStatsCollector getDroneStatsCollector() {
     return droneStatsCollector;
   }
+
   public void setDroneStatsCollector(DroneStatsCollector droneStatsCollector) {
     this.droneStatsCollector = droneStatsCollector;
   }
@@ -176,8 +202,9 @@ public class Drone {
   }
 
 
-  public static void main(String[] args) {
-    new Drone(2,998,"http://localhost:1337/drone_interface");
+  public static void main(String[] args) throws InterruptedException {
+    Drone d = new Drone(2,998);
+    d.startDrone();
   }
 
 

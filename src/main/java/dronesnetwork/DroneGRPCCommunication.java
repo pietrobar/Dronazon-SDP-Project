@@ -44,11 +44,6 @@ public class DroneGRPCCommunication implements Runnable{
     List<DroneInfo> drones = drone.getDronesCopy();
     if (drones.size()==1){
       drone.setMasterId(drone.getId());
-      //if I'm the master i have to start a thread to manage the orders
-      Thread t1 = new Thread(new DroneOrderManager(drone));
-      t1.start();
-      drone.setDroneStatsCollector(new DroneStatsCollector(drone));
-      //todo: cose da fare anche quando il master viene eletto
     }else{
       //otherwise broadcast to every other node
       List<Thread> threads = new ArrayList<>();
@@ -94,6 +89,9 @@ public class DroneGRPCCommunication implements Runnable{
       }
       //todo: iniziare una elezione se non c'e' un master attivo, dopo aver aspettato il timeout!!
 
+    }
+    synchronized (drone){
+      drone.notify();//main thread is waiting for this to start DroneOrderManager and DroneStatsCollector if master
     }
   }
 
@@ -155,11 +153,15 @@ public class DroneGRPCCommunication implements Runnable{
                   .setBattery(drone.getBatteryCharge())
                   .build();
 
-          //todo: terminata questa funzione se il livello di batteria poco devo uscire dalla rete
           System.out.println("CONSEGNA EFFETTUATA");
           responseObserver.onNext(response);
 
           responseObserver.onCompleted();
+
+          if(drone.getBatteryCharge()<15 || drone.isQuitting()){
+            drone.setQuit(true);//in case is < 15
+            leaveNetwork();
+          }
 
         }
       }).build();
@@ -180,7 +182,14 @@ public class DroneGRPCCommunication implements Runnable{
 
     }
   }
-  /*Called by DroneOrderManager to assign a delivery to a free drone*/
+
+  private void leaveNetwork() {
+    if(drone.getId()==drone.getMasterId()){//if I'm the master
+
+    }
+  }
+
+  /*Called by a thread create by DroneOrderManager's callback to assign a delivery to a free drone*/
   public void assignOrder(Order order, DroneOrderManager droneOrderManager){
     synchronized (this){
       while(findBestDrone(order)==null) {//all drones are occupied

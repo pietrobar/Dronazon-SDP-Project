@@ -28,33 +28,30 @@ public class DroneStatsCollector {
 
     this.drone = drone;
 
-    //starts a new thread to send statistics to server administrator
-    ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-    exec.scheduleAtFixedRate(() -> {
-      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-
-      //DELIVERIES
-      List<Float> ds = new ArrayList<>(deliveries.values());
-      float meanDeliveries = mean(ds);
-
-      //MEAN KILOMETERS
-      float meanKm = mean(kilometers);
-
-      //POLLUTION MEAN
-      float meanPollution = mean(pollution);
-
-      //MEAN BATTERY
-      float meanBattery = mean(battery);
-
-      if(meanKm!=0 && meanPollution!=0 && meanBattery!=0 &&meanDeliveries!=0){
-        Statistic statistic = new Statistic(LocalDateTime.now().format(formatter), meanDeliveries, meanKm ,meanPollution,meanBattery);
-        DroneRESTCommunication.sendStatistic(drone,statistic);
-      }
-
-    }, 0, 10, TimeUnit.SECONDS);
   }
+  public void generateAndSendStatistic(){
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+
+    //DELIVERIES
+    List<Float> ds = new ArrayList<>(deliveries.values());
+    float meanDeliveries = mean(ds);
+
+    //MEAN KILOMETERS
+    float meanKm = mean(kilometers);
+
+    //POLLUTION MEAN
+    float meanPollution = mean(pollution);
+
+    //MEAN BATTERY
+    float meanBattery = mean(battery);
+
+    if(meanKm!=0 && meanPollution!=0 && meanBattery!=0 &&meanDeliveries!=0){
+      Statistic statistic = new Statistic(LocalDateTime.now().format(formatter), meanDeliveries, meanKm ,meanPollution,meanBattery);
+      DroneRESTCommunication.sendStatistic(drone,statistic);
+    }
+  }
   private float mean(List<Float> values){
     synchronized (this){
       if (values.size()==0) return 0;
