@@ -26,7 +26,7 @@ public class Drone {
   private DroneOrderManager droneOrderManager;
 
   private int batteryCharge;
-  private int masterId;
+  private int masterId=-1;
 
   //pollution
   private DronePollutionSensor dronePollutionSensor;
@@ -147,7 +147,7 @@ public class Drone {
     this.position = position;
   }
 
-  public void setDrones(List<DroneInfo> drones) {
+  public synchronized void setDrones(List<DroneInfo> drones) {
     this.drones = drones;
   }
 
@@ -248,7 +248,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(1,999);
+    Drone d = new Drone(10,991);
     d.startDrone();
   }
 

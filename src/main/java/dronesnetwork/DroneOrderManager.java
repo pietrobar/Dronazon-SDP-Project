@@ -75,7 +75,7 @@ public class DroneOrderManager implements Runnable{
 
           Runnable r = () -> drone.getDroneGRPCManager().assignOrder(order);
           Thread t = new Thread(r);
-          t.start();
+          t.start();//these threads try to assign orders to free drones, are the same count as the orders
         }
 
         public void connectionLost(Throwable cause) {
