@@ -150,6 +150,9 @@ public class Drone {
   public synchronized void setDrones(List<DroneInfo> drones) {
     this.drones = drones;
   }
+  public synchronized void removeDroneFromList(DroneInfo bestDrone) {
+    this.drones.remove(bestDrone);
+  }
 
   public int getBatteryCharge() {
     return batteryCharge;

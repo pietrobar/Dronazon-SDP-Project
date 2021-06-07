@@ -61,8 +61,7 @@ public class DroneRESTCommunication{
     ClientResponse response = webResource.type("application/json")
               .post(ClientResponse.class, droneInfoJson);
 
-    //todo: inizializzare la lista solamente se il codice e' 200
-    if(response.getStatus()!=301){//   != NotModified if id already present
+    if(response.getStatus()==200){//   NotModified (301) if id already present
       List<DroneInfo> res = response.getEntity(new GenericType<List<DroneInfo>>(){});
       for (DroneInfo di : res){
         if(di.getId()==drone.getId()) drone.setPosition(di.getPosition());//get the position set from the server

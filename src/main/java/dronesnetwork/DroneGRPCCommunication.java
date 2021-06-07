@@ -73,7 +73,7 @@ public class DroneGRPCCommunication implements Runnable{
                 drone.setMasterId(response.getMasterId());
               }catch (Exception e){
                 deadDrones.add(node);
-                drones.remove(node);//Remove dead drone
+                drone.removeDroneFromList(node);//Remove dead drone
               }
               channel.shutdown();
             }
@@ -85,7 +85,6 @@ public class DroneGRPCCommunication implements Runnable{
       for (Thread t: threads){
           t.join();
       }
-      drone.setDrones(drones);
       synchronized (drone){
         if (drones.size()==1)
           drone.setMasterId(drone.getId());
@@ -95,7 +94,7 @@ public class DroneGRPCCommunication implements Runnable{
         if(dead.getId()==drone.getMasterId()){
           //startElection();
         }else{
-          Thread t = new Thread(()->{warnEveryone(deadDrones);});
+          Thread t = new Thread(()->{warnEveryoneDeadDrone(deadDrones);});
           t.start();
         }
       }
@@ -107,7 +106,7 @@ public class DroneGRPCCommunication implements Runnable{
     }
   }
 
-  private void warnEveryone(List<DroneInfo> deadDrones) {
+  private void warnEveryoneDeadDrone(List<DroneInfo> deadDrones) {
     System.out.println("DEAD DRONES: "+deadDrones);
     List<DroneInfo> newFoundDead = new ArrayList<>();
     List<Thread> threads = new ArrayList<>();
@@ -146,7 +145,7 @@ public class DroneGRPCCommunication implements Runnable{
       if(dead.getId()==drone.getMasterId()){
         //startElection();
       }else{
-        Thread t=new Thread(()->{warnEveryone(newFoundDead);});//recursive call with different list
+        Thread t=new Thread(()->{warnEveryoneDeadDrone(newFoundDead);});//recursive call with different list
         t.start();
       }
     }
@@ -154,7 +153,7 @@ public class DroneGRPCCommunication implements Runnable{
 
 
   /*
-  * Start a GRPC server to be able to receive messages from other drones*/
+  * SERVER: Start a GRPC server to be able to receive messages from other drones*/
   public void reception(){
     try {
 
