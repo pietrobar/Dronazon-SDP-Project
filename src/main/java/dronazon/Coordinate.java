@@ -1,7 +1,6 @@
 package dronazon;
 
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.List;
 import java.util.Random;
 
 /**
@@ -30,7 +29,6 @@ public class Coordinate{
     int x = new Random().nextInt(10);//generate numbers from 0 to 9
     int y = new Random().nextInt(10);
     Coordinate generated = new Coordinate(x,y);
-    //TODO: si potrebbe controllare che non vengano create due coordinate uguali di seguito => punto di partenza == punto arrivo
     return generated;
   }
 

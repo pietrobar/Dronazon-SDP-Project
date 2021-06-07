@@ -5,9 +5,6 @@ import restserver.beans.Statistic;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Pietro on 04/06/2021
@@ -49,9 +46,18 @@ public class DroneStatsCollector {
 
     if(meanKm!=0 && meanPollution!=0 && meanBattery!=0 &&meanDeliveries!=0){
       Statistic statistic = new Statistic(LocalDateTime.now().format(formatter), meanDeliveries, meanKm ,meanPollution,meanBattery);
+      resetAllStats();
       DroneRESTCommunication.sendStatistic(drone,statistic);
     }
   }
+
+  private void resetAllStats() {
+    this.deliveries.clear();
+    this.kilometers.clear();
+    this.pollution.clear();
+    this.battery.clear();
+  }
+
   private float mean(List<Float> values){
     synchronized (this){
       if (values.size()==0) return 0;

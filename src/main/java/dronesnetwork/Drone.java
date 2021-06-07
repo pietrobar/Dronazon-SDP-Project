@@ -251,7 +251,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(2,998);
+    Drone d = new Drone(3,999);
     d.startDrone();
   }
 
