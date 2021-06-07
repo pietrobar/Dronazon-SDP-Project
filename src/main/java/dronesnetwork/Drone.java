@@ -179,9 +179,6 @@ public class Drone {
     return droneOrderManager;
   }
 
-  public void setDroneOrderManager(DroneOrderManager droneOrderManager) {
-    this.droneOrderManager = droneOrderManager;
-  }
 
   public synchronized boolean isQuitting() {
     return quit;
@@ -251,7 +248,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(3,999);
+    Drone d = new Drone(1,999);
     d.startDrone();
   }
 

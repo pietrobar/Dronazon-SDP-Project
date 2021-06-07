@@ -19,12 +19,10 @@ import java.util.List;
  */
 public class DroneGRPCCommunication implements Runnable{
   private final Drone drone;
-  private final List<DroneInfo> occupiedDrones;
 
 
   public DroneGRPCCommunication(Drone drone){
     this.drone=drone;
-    occupiedDrones = new ArrayList<>();//everyone does it but is needed only in the master drone
   }
   /*
    * This thread will manage the communication in the drones network
@@ -189,20 +187,22 @@ public class DroneGRPCCommunication implements Runnable{
   }
 
   /*Called by a thread create by DroneOrderManager's callback to assign a delivery to a free drone*/
-  public void assignOrder(Order order, DroneOrderManager droneOrderManager){
+  public void assignOrder(Order order){
+
+    DroneOrderManager droneOrderManager = drone.getDroneOrderManager();
     synchronized (drone.getDroneOrderManager()){
       while(findBestDrone(order)==null) {//all drones are occupied
         try {
-          drone.getDroneOrderManager().wait();
+          droneOrderManager.wait();
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
+
       //here I'm sure there is at least one free drone
       DroneInfo bestDrone = findBestDrone(order);//this could be null BUT drone.getDronesCopy().size()==occupiedDrones.size() assure it cannot be null
-      synchronized (occupiedDrones){//can't deadlock with synchronized(this) -> add is not dependant on anything
-        occupiedDrones.add(bestDrone);
-      }
+
+      droneOrderManager.addOccupiedDrone(bestDrone);
 
       //call GRPC to that drone
       final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+bestDrone.getPort()).usePlaintext().build();
@@ -234,9 +234,9 @@ public class DroneGRPCCommunication implements Runnable{
 
       channel.shutdown();
 
-      synchronized (occupiedDrones){
-        occupiedDrones.remove(bestDrone);
-      }
+
+      droneOrderManager.removeOccupiedDrone(bestDrone);
+
       //freed one drone I can notify his freedom
       drone.getDroneOrderManager().notifyAll();
     }
@@ -261,7 +261,7 @@ public class DroneGRPCCommunication implements Runnable{
     });
     //from the sorted list I want a free drone
     for (int i = drones.size()-1; i>=0; i--){
-      if(!occupiedDrones.contains(drones.get(i))){
+      if(!drone.getDroneOrderManager().getOccupiedDrones().contains(drones.get(i))){
         return drones.get(i);
       }
     }

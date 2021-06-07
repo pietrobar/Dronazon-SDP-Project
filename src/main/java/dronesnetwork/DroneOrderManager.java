@@ -3,6 +3,7 @@ package dronesnetwork;
 import com.google.gson.Gson;
 import dronazon.Order;
 import org.eclipse.paho.client.mqttv3.*;
+import restserver.beans.DroneInfo;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,13 +21,14 @@ public class DroneOrderManager implements Runnable{
   String topic = "dronazon/smartcity/orders/";
   int qos = 2;
 
-  List<Order> orders;
+  private final List<Order> orders;
+  private final List<DroneInfo> occupiedDrones;
   Drone drone;
 
-  private final DroneOrderManager instance;
+
   public DroneOrderManager(Drone drone){
-    instance = this;
     orders = new ArrayList<>();
+    this.occupiedDrones = new ArrayList<>();
     this.drone = drone;
   }
 
@@ -35,6 +37,18 @@ public class DroneOrderManager implements Runnable{
   }
 
   public synchronized void removeOrder(Order order){ this.orders.remove(order); }
+
+  public void addOccupiedDrone(DroneInfo droneInfo){
+    this.occupiedDrones.add(droneInfo);
+  }
+
+  public void removeOccupiedDrone(DroneInfo droneInfo){
+    this.occupiedDrones.remove(droneInfo);
+  }
+
+  public List<DroneInfo> getOccupiedDrones(){
+    return occupiedDrones;
+  }
 
   @Override
   public void run() {
@@ -52,14 +66,16 @@ public class DroneOrderManager implements Runnable{
         /*each time a new order arrives a new thread is created that will manage the assignment of the order*/
         public void messageArrived(String topic, MqttMessage message) {
           String receivedMessage = new String(message.getPayload());
-          System.out.println("Received a Message! - " + receivedMessage);
+          System.out.println("Received a Order! - Thread"+Thread.currentThread().getId() + receivedMessage);
           //{"id":"79045252-c2c5-4edb-aa3e-4b841f1fcab7","pickUpPoint":{"x":8,"y":0},"deliveryPoint":{"x":6,"y":5}}
           //I have to save my order
           Gson gson = new Gson();
           Order order = gson.fromJson(receivedMessage, Order.class);
           addOrder(order);//useful to keep track of how many orders needs to be delivered
 
-          drone.getDroneGRPCManager().assignOrder(order, instance);
+          Runnable r = () -> drone.getDroneGRPCManager().assignOrder(order);
+          Thread t = new Thread(r);
+          t.start();
         }
 
         public void connectionLost(Throwable cause) {
