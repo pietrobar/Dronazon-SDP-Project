@@ -93,7 +93,7 @@ public class Drone {
   }
 
   public void leaveNetwork() {
-    if(!this.isDelivering()){//if is delivering this method will be called by delivery in grpc server
+    if(!this.isDelivering()){//if is delivering it will be unlocked by delivery() in grpc server
       if(this.getId()==this.getMasterId()){//if I'm the master
         //1 - my delivery is done
         //2 - disconnect from MQTT broker
@@ -119,6 +119,12 @@ public class Drone {
 
         System.out.println("\033[0;35m"+"BYE BYE"+"\033[0m");
         System.exit(0);
+      }else{
+        //I'm NOT the master
+        //1 - my delivery is done
+        //2 - close the communications with other drones
+        //3 - Ask server admin to exit the system
+        DroneRESTCommunication.quit(this);
       }
     }
   }
