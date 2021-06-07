@@ -21,10 +21,13 @@ public class Drone {
   private final int port;
   private final String administratorServerAddress="http://localhost:1337/drone_interface";
 
+  private boolean inElection;
   //Communication
   private DroneGRPCCommunication droneGRPCManager;
   private DroneOrderManager droneOrderManager;
 
+  private int deliveries;
+  private float kilometers;
   private int batteryCharge;
   private int masterId=-1;
 
@@ -36,7 +39,8 @@ public class Drone {
   private List<DroneInfo> drones;
 
   private DroneStatsCollector droneStatsCollector;
-  ScheduledExecutorService exec;
+  ScheduledExecutorService statSender;//only master
+  ScheduledExecutorService statPrinter;
   private boolean quit=false;
   private boolean delivering=false;
 
@@ -73,11 +77,18 @@ public class Drone {
     Thread p = new Thread(dronePollutionSensor);
     p.start();
 
+    statPrinter = Executors.newSingleThreadScheduledExecutor();
+    statPrinter.scheduleAtFixedRate(this::printStatistics, 0, 10, TimeUnit.SECONDS);
+
     synchronized (terminationObj){
       terminationObj.wait();//droneGRPCCommunication will tell me when it's time
     }
     leaveNetwork();
 
+  }
+
+  private void printStatistics() {
+    System.out.println(this);
   }
 
   private void justBecomeMaster(){
@@ -88,8 +99,8 @@ public class Drone {
 
     //starts a new thread to send statistics to server administrator
     droneStatsCollector=new DroneStatsCollector(this);
-    exec = Executors.newSingleThreadScheduledExecutor();
-    exec.scheduleAtFixedRate(droneStatsCollector::generateAndSendStatistic, 0, 10, TimeUnit.SECONDS);
+    statSender = Executors.newSingleThreadScheduledExecutor();
+    statSender.scheduleAtFixedRate(droneStatsCollector::generateAndSendStatistic, 0, 10, TimeUnit.SECONDS);
   }
 
   public void leaveNetwork() {
@@ -112,7 +123,8 @@ public class Drone {
         }
         //4 - close the communications with other drones
         //5 - send statistics to server administrator
-        exec.shutdown();
+        statSender.shutdown();
+        statPrinter.shutdown();
         droneStatsCollector.generateAndSendStatistic();
         //6 - Ask server admin to exit the system
         DroneRESTCommunication.quit(this);
@@ -124,13 +136,38 @@ public class Drone {
         //1 - my delivery is done
         //2 - close the communications with other drones
         //3 - Ask server admin to exit the system
+        statPrinter.shutdown();
         DroneRESTCommunication.quit(this);
       }
     }
   }
 
+  public synchronized int getDeliveries() {
+    return deliveries;
+  }
+
+  public synchronized void setDeliveries(int deliveries) {
+    this.deliveries = deliveries;
+  }
+
+  public synchronized float getKilometers() {
+    return kilometers;
+  }
+
+  public synchronized void setKilometers(float kilometers) {
+    this.kilometers = kilometers;
+  }
+
   public synchronized List<DroneInfo> getDronesCopy() {
     return new ArrayList<>(drones);
+  }
+
+  public synchronized boolean isInElection() {
+    return inElection;
+  }
+
+  public synchronized void setInElection(boolean inElection) {
+    this.inElection = inElection;
   }
 
   public int getId() {
@@ -156,15 +193,15 @@ public class Drone {
   public synchronized void setDrones(List<DroneInfo> drones) {
     this.drones = drones;
   }
-  public synchronized void removeDroneFromList(DroneInfo bestDrone) {
-    this.drones.remove(bestDrone);
+  public synchronized void removeDroneFromList(DroneInfo drone) {
+    this.drones.remove(drone);
   }
 
-  public int getBatteryCharge() {
+  public synchronized int getBatteryCharge() {
     return batteryCharge;
   }
 
-  public void setBatteryCharge(int batteryCharge) {
+  public synchronized void setBatteryCharge(int batteryCharge) {
     this.batteryCharge = batteryCharge;
   }
 
@@ -231,14 +268,18 @@ public class Drone {
     }
   }
 
-  public DroneInfo successor() {
+  public DroneInfo successor(Drone drone) {
     for (DroneInfo d : getDronesCopy()){
-      if(d.getId()>this.id){
+      if(d.getId()>drone.id){
         return d;
       }
     }
     //if no one has highest id my successor is the first Drone in the ordered list, and i'm the last one
     return drones.get(0);
+  }
+
+  public DroneInfo toDroneInfo(){
+    return new DroneInfo(this.getId(),this.getIp(),this.getPort());
   }
 
   @Override
@@ -247,17 +288,17 @@ public class Drone {
             "id=" + id +",\n"+
             "ip='" + ip  +",\n"+
             "port=" + port +",\n"+
+            "deliveries=" + deliveries +",\n"+
+            "kilometers=" + kilometers +",\n"+
             "batteryCharge=" + batteryCharge +",\n"+
             "masterId=" + masterId +",\n"+
             "position=" + position +",\n"+
-            "drones=" + drones +",\n"+
-            "successor= " + successor()+
             '}';
   }
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(10,991);
+    Drone d = new Drone(30,1030);
     d.startDrone();
   }
 

@@ -6,7 +6,6 @@ import org.eclipse.paho.client.mqttv3.*;
 import restserver.beans.DroneInfo;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 

@@ -67,6 +67,7 @@ public class DroneRESTCommunication{
         if(di.getId()==drone.getId()) drone.setPosition(di.getPosition());//get the position set from the server
       }
       drone.setDrones(res);
+      System.out.println("DRONI RICEVUTI DAL SERVER"+res);
 
     }else{
       return false;

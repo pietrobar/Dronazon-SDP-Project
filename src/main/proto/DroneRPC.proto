@@ -43,6 +43,27 @@ message DeadDroneResponse {
   int32 masterId = 2;
 }
 
+message PingRequest{
+  string val = 1;
+}
+
+message PingResponse{
+  string val = 1;
+}
+
+message Election{
+  int32 id = 1;
+  int32 battery = 2;
+}
+
+message EmptyResponse{
+  string val = 1;
+}
+
+message Elected{
+  int32 id = 1;
+}
+
 // Defining a Service, a Service can have multiple RPC operations
 service DroneService {
   rpc addDrone(AddDroneRequest) returns (AddDroneResponse);
@@ -50,4 +71,10 @@ service DroneService {
   rpc delivery(OrderRequest) returns (OrderResponse);
 
   rpc deadDrone(DeadDroneRequest) returns (DeadDroneResponse);
+
+  rpc ping(PingRequest) returns (PingResponse);
+
+  rpc election(Election) returns (EmptyResponse);
+
+  rpc elected(Elected) returns (EmptyResponse);
 }

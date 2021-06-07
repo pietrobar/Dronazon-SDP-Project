@@ -66,38 +66,45 @@ public class DroneGRPCCommunication implements Runnable{
                       .setPort(drone.getPort())
                       .setPosition(DroneRPC.Coordinate.newBuilder().setXCoord(drone.getPosition().getX()).setYCoord(drone.getPosition().getY()))
                       .build();
-              DroneRPC.AddDroneResponse response=null;
+              DroneRPC.AddDroneResponse response;
               try{
-                response = stub.withDeadlineAfter(3, TimeUnit.SECONDS).addDrone(request);//receive an answer, could fail-> timeout
+                response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).addDrone(request);//receive an answer, could fail-> timeout
 
                 drone.setMasterId(response.getMasterId());
               }catch (Exception e){
                 deadDrones.add(node);
-                drone.removeDroneFromList(node);//Remove dead drone
+                drone.removeDroneFromList(node);//Remove dead drone'
+                System.out.println("DRONE RIMOSSO: "+node);
               }
               channel.shutdown();
             }
           };
           threads.add(t);
-          t.start();
+
         }
       }
       for (Thread t: threads){
-          t.join();
+        t.start();
       }
-      synchronized (drone){
-        if (drones.size()==1)
-          drone.setMasterId(drone.getId());
+      for (Thread t:threads){
+        t.join();
       }
-      //Manage borderline case: after I receive the list of drones a drone exit
-      for(DroneInfo dead : deadDrones){
-        if(dead.getId()==drone.getMasterId()){
-          //startElection();
-        }else{
-          Thread t = new Thread(()->{warnEveryoneDeadDrone(deadDrones);});
-          t.start();
+
+      if (drone.getDronesCopy().size()==1)
+        drone.setMasterId(drone.getId());
+
+      if (!(drone.getMasterId()==drone.getId())){
+        for(DroneInfo dead : deadDrones){
+          if(dead.getId()==drone.getMasterId()){
+            new Thread(this::startElection).start();
+
+          }else{
+            Thread t = new Thread(()->warnEveryoneDeadDrone(deadDrones));
+            t.start();
+          }
         }
       }
+
 
 
     }
@@ -106,7 +113,71 @@ public class DroneGRPCCommunication implements Runnable{
     }
   }
 
+  private void startElection() {
+    System.out.println("ELECTION STARTED");
+    //If master is dead I have to start an election => Chang And Roberts
+
+    //1 - Find Successor
+    DroneInfo successor = findAliveSuccessor(drone.toDroneInfo());
+
+    //2 - Participating to the election
+    drone.setInElection(true);
+
+    //3 - Send Election message
+    final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
+    DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+    DroneRPC.Election request = DroneRPC.Election.newBuilder().setId(drone.getId()).setBattery(drone.getBatteryCharge()).build();
+    DroneRPC.EmptyResponse response=null;
+    try{
+      response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).election(request);//receive an answer, could fail-> timeout
+      channel.shutdown();
+      //response is empty
+    }catch (Exception e){
+      //DEAD DRONE => tell everyone
+      List<DroneInfo> dead = new ArrayList<>();
+      dead.add(successor);
+      Thread t=new Thread(()->{warnEveryoneDeadDrone(dead);});
+      t.start();
+      channel.shutdown();
+      startElection();//restart the election because this one failed!
+    }
+
+
+  }
+
+  private DroneInfo findAliveSuccessor(DroneInfo d){
+    DroneInfo wannabeSuccessor = drone.successor(drone);
+    if(isAlive(wannabeSuccessor)){
+      return wannabeSuccessor;
+    }
+    return findAliveSuccessor(wannabeSuccessor);
+  }
+
+  private boolean isAlive(DroneInfo di) {
+    //ping a drone
+    boolean ret=false;
+
+    final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+di.getPort()).usePlaintext().build();
+    DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+    DroneRPC.PingRequest request = DroneRPC.PingRequest.newBuilder().build();
+    DroneRPC.PingResponse response=null;
+
+    try{
+      response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).ping(request);//receive an answer, could fail-> timeout
+      ret = true;
+    }catch (Exception e){
+      //DEAD DRONE => tell everyone
+      List<DroneInfo> dead = new ArrayList<>();
+      dead.add(di);
+      Thread t=new Thread(()->{warnEveryoneDeadDrone(dead);});
+      t.start();
+    }
+    channel.shutdown();
+    return ret;
+  }
+
   private void warnEveryoneDeadDrone(List<DroneInfo> deadDrones) {
+    System.out.println("ALIVE: "+drone.getDronesCopy());
     System.out.println("DEAD DRONES: "+deadDrones);
     List<DroneInfo> newFoundDead = new ArrayList<>();
     List<Thread> threads = new ArrayList<>();
@@ -122,7 +193,7 @@ public class DroneGRPCCommunication implements Runnable{
 
           DroneRPC.DeadDroneResponse response=null;
           try{
-            response = stub.withDeadlineAfter(3, TimeUnit.SECONDS).deadDrone(request);//receive an answer, could fail-> timeout
+            response = stub.withDeadlineAfter(10, TimeUnit.SECONDS).deadDrone(request);//receive an answer, could fail-> timeout
 
             drone.setMasterId(response.getMasterId());
           }catch (Exception e){
@@ -143,7 +214,7 @@ public class DroneGRPCCommunication implements Runnable{
     }
     for(DroneInfo dead : newFoundDead){
       if(dead.getId()==drone.getMasterId()){
-        //startElection();
+        startElection();
       }else{
         Thread t=new Thread(()->{warnEveryoneDeadDrone(newFoundDead);});//recursive call with different list
         t.start();
@@ -182,6 +253,7 @@ public class DroneGRPCCommunication implements Runnable{
         @Override
         public void delivery(DroneRPC.OrderRequest request, StreamObserver<DroneRPC.OrderResponse> responseObserver) {
           drone.setDelivering(true);
+          drone.setBatteryCharge(drone.getBatteryCharge()-10);//helps the election
           try {
             Thread.sleep(5000);
           } catch (InterruptedException e) {
@@ -194,7 +266,6 @@ public class DroneGRPCCommunication implements Runnable{
           int d2 = distance(c1,c2);
 
           drone.setPosition(c2);
-          drone.setBatteryCharge(drone.getBatteryCharge()-10);
           DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
           //take pollution values
@@ -239,6 +310,126 @@ public class DroneGRPCCommunication implements Runnable{
 
           responseObserver.onCompleted();
         }
+
+        @Override
+        public void ping(DroneRPC.PingRequest request, StreamObserver<DroneRPC.PingResponse> responseObserver) {
+          DroneRPC.PingResponse response = DroneRPC.PingResponse.newBuilder().build();
+          responseObserver.onNext(response);
+          responseObserver.onCompleted();
+        }
+
+        @Override
+        public void elected(DroneRPC.Elected request, StreamObserver<DroneRPC.EmptyResponse> responseObserver) {
+          System.out.println("ELECTED");
+          //Respond and extract message
+          DroneRPC.EmptyResponse response = DroneRPC.EmptyResponse.newBuilder().build();
+          responseObserver.onNext(response);
+          //END OF RING => I'm the master
+          if(request.getId()==drone.getId()){
+            drone.setMasterId(drone.getId());
+          }else{
+            //Middle of ring
+            drone.setMasterId(request.getId());
+            drone.setInElection(false);
+            forwardElected(request);
+          }
+
+
+          responseObserver.onCompleted();
+        }
+
+        @Override
+        public void election(DroneRPC.Election request, StreamObserver<DroneRPC.EmptyResponse> responseObserver) {
+          //If an election message arrives => Master is dead
+          for (DroneInfo di : drone.getDronesCopy()){
+            if (di.getId()==drone.getMasterId()){
+              drone.removeDroneFromList(di);//remove master from list
+            }
+          }
+          System.out.println("ELECTION message received");
+          //Respond and extract message
+          DroneRPC.EmptyResponse response = DroneRPC.EmptyResponse.newBuilder().build();
+          responseObserver.onNext(response);
+
+          if(request.getBattery()>drone.getBatteryCharge()||(request.getBattery()==drone.getBatteryCharge() && request.getId()> drone.getId())){
+            drone.setInElection(true);
+            sendElection(request);//FORWARD
+          }else if(request.getBattery()<drone.getBatteryCharge()&&!drone.isInElection()){
+            drone.setInElection(true);
+            DroneRPC.Election newRequest = DroneRPC.Election.newBuilder().setId(drone.getId()).setBattery(drone.getBatteryCharge()).build();
+            sendElection(newRequest);
+          }else if(request.getBattery()<drone.getBatteryCharge()&&drone.isInElection()){
+            //stopElection
+            System.out.println("Election stopped");
+          }else if(request.getBattery()==drone.getBatteryCharge() && request.getId()==drone.getId()){
+            //I'm the master
+            drone.setInElection(false);
+
+            sendElected();
+          }
+
+
+          responseObserver.onCompleted();
+        }
+
+        private void sendElected() {
+          DroneInfo successor = findAliveSuccessor(drone.toDroneInfo());
+          final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
+          DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+          DroneRPC.Elected request = DroneRPC.Elected.newBuilder().setId(drone.getId()).build();
+          DroneRPC.EmptyResponse response=null;
+          try{
+            response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).elected(request);//receive an answer, could fail-> timeout
+            //response is empty
+          }catch (Exception e){
+            //DEAD DRONE => tell everyone
+            List<DroneInfo> dead = new ArrayList<>();
+            dead.add(successor);
+            Thread t=new Thread(()->{warnEveryoneDeadDrone(dead);});
+            t.start();
+            sendElected();//if it fails
+          }
+          channel.shutdown();
+        }
+        private void forwardElected(DroneRPC.Elected request){
+          Context.current().fork();
+          DroneInfo successor= findAliveSuccessor(drone.toDroneInfo());
+          final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
+          DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+          DroneRPC.EmptyResponse response=null;
+          try{
+            response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).elected(request);//receive an answer, could fail-> timeout
+            //response is empty
+          }catch (Exception e){
+            //DEAD DRONE => tell everyone
+            List<DroneInfo> dead = new ArrayList<>();
+            dead.add(successor);
+            Thread t=new Thread(()->{warnEveryoneDeadDrone(dead);});
+            t.start();
+          }
+          channel.shutdown();
+        }
+
+        private void sendElection(DroneRPC.Election request) {
+          Context.current().fork();
+          DroneInfo successor= findAliveSuccessor(drone.toDroneInfo());
+          final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
+          DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+          DroneRPC.EmptyResponse response=null;
+          try{
+            response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).election(request);//receive an answer, could fail-> timeout
+            //response is empty
+          }catch (Exception e){
+            //DEAD DRONE => tell everyone
+            List<DroneInfo> dead = new ArrayList<>();
+            dead.add(successor);
+            Thread t=new Thread(()->{warnEveryoneDeadDrone(dead);});
+            t.start();
+          }
+          channel.shutdown();
+        }
+
+
       }).build();
 
       server.start();
