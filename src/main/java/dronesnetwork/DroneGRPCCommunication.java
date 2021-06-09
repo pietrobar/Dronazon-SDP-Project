@@ -99,8 +99,8 @@ public class DroneGRPCCommunication implements Runnable{
             new Thread(this::startElection).start();
 
           }else{
-            Thread t = new Thread(()->warnEveryoneDeadDrone(deadDrones));
-            t.start();
+            //DEAD DRONE delete from my list
+            drone.removeDroneFromList(dead);
           }
         }
       }
@@ -133,11 +133,8 @@ public class DroneGRPCCommunication implements Runnable{
       channel.shutdown();
       //response is empty
     }catch (Exception e){
-      //DEAD DRONE => tell everyone
-      List<DroneInfo> dead = new ArrayList<>();
-      dead.add(successor);
-      Thread t=new Thread(()->{warnEveryoneDeadDrone(dead);});
-      t.start();
+      //DEAD DRONE delete from my list
+      drone.removeDroneFromList(successor);
       channel.shutdown();
       startElection();//restart the election because this one failed!
     }
@@ -166,61 +163,13 @@ public class DroneGRPCCommunication implements Runnable{
       response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).ping(request);//receive an answer, could fail-> timeout
       ret = true;
     }catch (Exception e){
-      //DEAD DRONE => tell everyone
-      List<DroneInfo> dead = new ArrayList<>();
-      dead.add(di);
-      Thread t=new Thread(()->{warnEveryoneDeadDrone(dead);});
-      t.start();
+      //DEAD DRONE delete from my list
+      drone.removeDroneFromList(di);
     }
     channel.shutdown();
     return ret;
   }
 
-  private void warnEveryoneDeadDrone(List<DroneInfo> deadDrones) {
-    System.out.println("ALIVE: "+drone.getDronesCopy());
-    System.out.println("DEAD DRONES: "+deadDrones);
-    List<DroneInfo> newFoundDead = new ArrayList<>();
-    List<Thread> threads = new ArrayList<>();
-    for(DroneInfo di : drone.getDronesCopy()){
-      if(!deadDrones.contains(di) && di.getId()!=drone.getId()){//don't call grpc to myself because reception not active
-        Thread t = new Thread(() -> {
-          final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+di.getPort()).usePlaintext().build();
-
-          DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
-
-          DroneRPC.DeadDroneRequest request = DroneRPC.DeadDroneRequest.newBuilder()
-                  .setId(di.getId()).build();
-
-          DroneRPC.DeadDroneResponse response=null;
-          try{
-            response = stub.withDeadlineAfter(10, TimeUnit.SECONDS).deadDrone(request);//receive an answer, could fail-> timeout
-
-            drone.setMasterId(response.getMasterId());
-          }catch (Exception e){
-            newFoundDead.add(di);
-          }
-          channel.shutdown();
-        });
-        threads.add(t);
-        t.start();
-      }
-    }
-    for (Thread t: threads){
-      try {
-        t.join();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
-    for(DroneInfo dead : newFoundDead){
-      if(dead.getId()==drone.getMasterId()){
-        startElection();
-      }else{
-        Thread t=new Thread(()->{warnEveryoneDeadDrone(newFoundDead);});//recursive call with different list
-        t.start();
-      }
-    }
-  }
 
 
   /*
@@ -382,12 +331,9 @@ public class DroneGRPCCommunication implements Runnable{
             response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).elected(request);//receive an answer, could fail-> timeout
             //response is empty
           }catch (Exception e){
-            //DEAD DRONE => tell everyone
-            List<DroneInfo> dead = new ArrayList<>();
-            dead.add(successor);
-            Thread t=new Thread(()->{warnEveryoneDeadDrone(dead);});
-            t.start();
-            sendElected();//if it fails
+            //DEAD DRONE delete from my list
+            drone.removeDroneFromList(successor);
+            sendElected();//if it fails I have to repeat this method, this time it will be called on the new successor
           }
           channel.shutdown();
         }
@@ -401,11 +347,8 @@ public class DroneGRPCCommunication implements Runnable{
             response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).elected(request);//receive an answer, could fail-> timeout
             //response is empty
           }catch (Exception e){
-            //DEAD DRONE => tell everyone
-            List<DroneInfo> dead = new ArrayList<>();
-            dead.add(successor);
-            Thread t=new Thread(()->{warnEveryoneDeadDrone(dead);});
-            t.start();
+            //DEAD DRONE delete from my list
+            drone.removeDroneFromList(successor);
           }
           channel.shutdown();
         }
@@ -420,11 +363,8 @@ public class DroneGRPCCommunication implements Runnable{
             response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).election(request);//receive an answer, could fail-> timeout
             //response is empty
           }catch (Exception e){
-            //DEAD DRONE => tell everyone
-            List<DroneInfo> dead = new ArrayList<>();
-            dead.add(successor);
-            Thread t=new Thread(()->{warnEveryoneDeadDrone(dead);});
-            t.start();
+            //DEAD DRONE delete from my list
+            drone.removeDroneFromList(successor);
           }
           channel.shutdown();
         }
