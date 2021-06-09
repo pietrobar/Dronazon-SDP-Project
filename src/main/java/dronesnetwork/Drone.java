@@ -283,7 +283,7 @@ public class Drone {
     drones.sort(Comparator.comparingInt(DroneInfo::getId));
   }
 
-  public synchronized void updateDroneList(DroneInfo droneInfo) {
+  public synchronized void updatePosAndBattery(DroneInfo droneInfo) {
     for (DroneInfo di : drones){
       if (di.getId() == droneInfo.getId()){
         di.setBattery(droneInfo.getBattery());
@@ -322,7 +322,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(9,1079);
+    Drone d = new Drone(90,1090);
     d.startDrone();
   }
 

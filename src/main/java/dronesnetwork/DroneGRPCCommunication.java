@@ -438,7 +438,7 @@ public class DroneGRPCCommunication implements Runnable{
       //DRONE LIST UPDATE
       bestDrone.setPosition(new Coordinate(response.getCurrentPos().getXCoord(),response.getCurrentPos().getYCoord()));
       bestDrone.setBattery(response.getBattery());
-      drone.updateDroneList(bestDrone);
+      drone.updatePosAndBattery(bestDrone);
 
       //once the order is done I want to remove it from the list
       droneOrderManager.removeOrder(order);
