@@ -292,6 +292,14 @@ public class Drone {
     }
   }
 
+  public synchronized void updatePosition(DroneInfo droneInfo) {
+    for (DroneInfo di : drones){
+      if (di.getId() == droneInfo.getId()){
+        di.setPosition(droneInfo.getPosition());
+      }
+    }
+  }
+
   public DroneInfo successor(Drone drone) {
     for (DroneInfo d : getDronesCopy()){
       if(d.getId()>drone.id){
@@ -322,7 +330,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(90,1090);
+    Drone d = new Drone(1,999);
     d.startDrone();
   }
 

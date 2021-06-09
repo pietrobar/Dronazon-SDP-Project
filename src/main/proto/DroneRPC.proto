@@ -62,6 +62,7 @@ message EmptyResponse{
 
 message Elected{
   int32 id = 1;
+  repeated AddDroneRequest updatePosition = 2;
 }
 
 // Defining a Service, a Service can have multiple RPC operations

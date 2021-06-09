@@ -283,11 +283,26 @@ public class DroneGRPCCommunication implements Runnable{
           //END OF RING => I'm the master
           if(request.getId()==drone.getId()){
             drone.setMasterId(drone.getId());
+            //update list with all new positions
+            for (DroneRPC.AddDroneRequest dp : request.getUpdatePositionList()){
+              System.out.println("Updating drone position "+ dp);
+              DroneInfo updated = new DroneInfo(dp.getId(),dp.getIp(),dp.getPort());
+              updated.setPosition(new Coordinate(dp.getPosition().getXCoord(),dp.getPosition().getYCoord()));
+              drone.updatePosition(updated);
+            }
             drone.justBecomeMaster();
           }else{
             //Middle of ring
             drone.setMasterId(request.getId());
             drone.setInElection(false);
+            //send my new position
+            DroneRPC.AddDroneRequest update = DroneRPC.AddDroneRequest.newBuilder()
+                    .setId(drone.getId())
+                    .setIp(drone.getIp())
+                    .setPort(drone.getPort())
+                    .setPosition(DroneRPC.Coordinate.newBuilder().setXCoord(drone.getPosition().getX()).setYCoord(drone.getPosition().getY()))
+                    .build();
+            request.toBuilder().addUpdatePosition(update).build();
             forwardElected(request);
           }
 
