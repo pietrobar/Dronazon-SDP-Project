@@ -11,6 +11,7 @@ import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Created by Pietro on 09/05/2021
@@ -42,6 +43,7 @@ public class Drone {
   private DroneStatsCollector droneStatsCollector;
   ScheduledExecutorService statSender;//only master
   ScheduledExecutorService statPrinter;
+  ScheduledExecutorService pingMaster;
   private boolean quit=false;
   private boolean delivering=false;
 
@@ -71,6 +73,10 @@ public class Drone {
 
     if(this.id==this.getMasterId()){
       justBecomeMaster();
+    }else{//if I'm a normal drone I'll start ping the master. This thread is stopped if i become the master
+      pingMaster = Executors.newSingleThreadScheduledExecutor();
+      DroneInfo master = this.getDronesCopy().stream().filter(d->d.getId()==this.getMasterId()).collect(Collectors.toList()).get(0);
+      pingMaster.scheduleAtFixedRate(()->droneGRPCManager.isAlive(master), 0, 5, TimeUnit.SECONDS);
     }
 
 
@@ -104,7 +110,7 @@ public class Drone {
     System.out.println(this);
   }
 
-  private void justBecomeMaster(){
+  protected void justBecomeMaster(){
     //manage orders
     droneOrderManager = new DroneOrderManager(this);
     Thread t1 = new Thread(droneOrderManager);
@@ -114,6 +120,11 @@ public class Drone {
     droneStatsCollector=new DroneStatsCollector(this);
     statSender = Executors.newSingleThreadScheduledExecutor();
     statSender.scheduleAtFixedRate(droneStatsCollector::generateAndSendStatistic, 0, 10, TimeUnit.SECONDS);
+
+    //if before I was a normal drone I want to stop ping master because it's me
+    if (pingMaster!=null){
+      pingMaster.shutdown();
+    }
   }
 
   public void leaveNetwork() {
@@ -311,7 +322,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(31,1030);
+    Drone d = new Drone(9,1079);
     d.startDrone();
   }
 
