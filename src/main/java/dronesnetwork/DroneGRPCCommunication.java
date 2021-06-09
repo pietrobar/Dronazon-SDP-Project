@@ -72,7 +72,6 @@ public class DroneGRPCCommunication implements Runnable{
             }catch (Exception e){
               deadDrones.add(node);
               drone.removeDroneFromList(node);//Remove dead drone'
-              System.out.println("DRONE RIMOSSO: "+node);
             }
             channel.shutdown();
           });

@@ -7,6 +7,7 @@ import restserver.beans.DroneInfo;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -79,6 +80,18 @@ public class Drone {
 
     statPrinter = Executors.newSingleThreadScheduledExecutor();
     statPrinter.scheduleAtFixedRate(this::printStatistics, 0, 10, TimeUnit.SECONDS);
+
+    //start thread to read from stdIn
+    Thread waitForQuit = new Thread(() -> {
+      Scanner scanner = new Scanner(System.in);
+      while(!scanner.nextLine().equals("quit")){
+        System.out.println("Press 'quit' to stop the drone");
+      }
+      synchronized (terminationObj){
+        terminationObj.notify();
+      }
+    });
+    waitForQuit.start();
 
     synchronized (terminationObj){
       terminationObj.wait();//droneGRPCCommunication will tell me when it's time
