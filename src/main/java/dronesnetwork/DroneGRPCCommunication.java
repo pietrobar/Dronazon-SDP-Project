@@ -53,32 +53,29 @@ public class DroneGRPCCommunication implements Runnable{
       List<DroneInfo> deadDrones = new ArrayList<>();
       for (DroneInfo node : drones){
         if(node.getId()!=drone.getId()){
-          Thread t = new Thread(){
-            @Override
-            public void run() {
-              final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+node.getPort()).usePlaintext().build();
-              //todo: gestire le eccezioni sulla connessione
-              DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+          Thread t = new Thread(() -> {
+            final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+node.getPort()).usePlaintext().build();
+            //todo: gestire le eccezioni sulla connessione
+            DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
 
-              DroneRPC.AddDroneRequest request = DroneRPC.AddDroneRequest.newBuilder()
-                      .setId(drone.getId())
-                      .setIp(drone.getIp())
-                      .setPort(drone.getPort())
-                      .setPosition(DroneRPC.Coordinate.newBuilder().setXCoord(drone.getPosition().getX()).setYCoord(drone.getPosition().getY()))
-                      .build();
-              DroneRPC.AddDroneResponse response;
-              try{
-                response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).addDrone(request);//receive an answer, could fail-> timeout
+            DroneRPC.AddDroneRequest request = DroneRPC.AddDroneRequest.newBuilder()
+                    .setId(drone.getId())
+                    .setIp(drone.getIp())
+                    .setPort(drone.getPort())
+                    .setPosition(DroneRPC.Coordinate.newBuilder().setXCoord(drone.getPosition().getX()).setYCoord(drone.getPosition().getY()))
+                    .build();
+            DroneRPC.AddDroneResponse response;
+            try{
+              response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).addDrone(request);//receive an answer, could fail-> timeout
 
-                drone.setMasterId(response.getMasterId());
-              }catch (Exception e){
-                deadDrones.add(node);
-                drone.removeDroneFromList(node);//Remove dead drone'
-                System.out.println("DRONE RIMOSSO: "+node);
-              }
-              channel.shutdown();
+              drone.setMasterId(response.getMasterId());
+            }catch (Exception e){
+              deadDrones.add(node);
+              drone.removeDroneFromList(node);//Remove dead drone'
+              System.out.println("DRONE RIMOSSO: "+node);
             }
-          };
+            channel.shutdown();
+          });
           threads.add(t);
 
         }
