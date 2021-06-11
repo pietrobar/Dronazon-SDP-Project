@@ -8,7 +8,8 @@ message AddDroneRequest {
   int32 id = 1;
   string ip = 2;
   int32 port = 3;
-  Coordinate position = 4;
+  int32 battery = 4;
+  Coordinate position = 5;
 }
 
 message AddDroneResponse {

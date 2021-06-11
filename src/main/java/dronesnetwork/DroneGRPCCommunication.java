@@ -14,6 +14,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Created by Pietro on 13/05/2021
@@ -284,11 +285,20 @@ public class DroneGRPCCommunication implements Runnable{
           if(request.getId()==drone.getId()){
             drone.setMasterId(drone.getId());
             //update list with all new positions
+            List<DroneInfo> currentNetwork = drone.getDronesCopy();
             for (DroneRPC.AddDroneRequest dp : request.getUpdatePositionList()){
-              DroneInfo updated = new DroneInfo(dp.getId(),dp.getIp(),dp.getPort());
-              updated.setPosition(new Coordinate(dp.getPosition().getXCoord(),dp.getPosition().getYCoord()));
-              drone.updatePosition(updated);
+              if(currentNetwork.stream().filter(d -> d.getId() == dp.getId()).count()==1){
+                DroneInfo updated = new DroneInfo(dp.getId(),dp.getIp(),dp.getPort());
+                updated.setBattery(dp.getBattery());
+                updated.setPosition(new Coordinate(dp.getPosition().getXCoord(),dp.getPosition().getYCoord()));
+                drone.updatePosAndBattery(updated);
+              }else {
+                //if a drone doesn't send his update is DEAD
+                drone.removeDroneFromList(new DroneInfo(dp.getId(),dp.getIp(),dp.getPort()));
+              }
+
             }
+
             drone.justBecomeMaster();
           }else{
             //Middle of ring
@@ -299,6 +309,7 @@ public class DroneGRPCCommunication implements Runnable{
                     .setId(drone.getId())
                     .setIp(drone.getIp())
                     .setPort(drone.getPort())
+                    .setBattery(drone.getBatteryCharge())
                     .setPosition(DroneRPC.Coordinate.newBuilder().setXCoord(drone.getPosition().getX()).setYCoord(drone.getPosition().getY()))
                     .build();
             DroneRPC.Elected newRequest = request.toBuilder().addUpdatePosition(update).build();
