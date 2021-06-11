@@ -285,7 +285,6 @@ public class DroneGRPCCommunication implements Runnable{
             drone.setMasterId(drone.getId());
             //update list with all new positions
             for (DroneRPC.AddDroneRequest dp : request.getUpdatePositionList()){
-              System.out.println("Updating drone position "+ dp);
               DroneInfo updated = new DroneInfo(dp.getId(),dp.getIp(),dp.getPort());
               updated.setPosition(new Coordinate(dp.getPosition().getXCoord(),dp.getPosition().getYCoord()));
               drone.updatePosition(updated);
@@ -302,8 +301,8 @@ public class DroneGRPCCommunication implements Runnable{
                     .setPort(drone.getPort())
                     .setPosition(DroneRPC.Coordinate.newBuilder().setXCoord(drone.getPosition().getX()).setYCoord(drone.getPosition().getY()))
                     .build();
-            request.toBuilder().addUpdatePosition(update).build();
-            forwardElected(request);
+            DroneRPC.Elected newRequest = request.toBuilder().addUpdatePosition(update).build();
+            forwardElected(newRequest);
           }
 
 
