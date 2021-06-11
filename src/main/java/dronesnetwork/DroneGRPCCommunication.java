@@ -14,7 +14,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Created by Pietro on 13/05/2021
@@ -154,6 +153,7 @@ public class DroneGRPCCommunication implements Runnable{
   }
 
   protected boolean isAlive(DroneInfo di) {
+    System.out.println("PING "+di);
     //ping a drone
     boolean ret=false;
 
@@ -283,22 +283,18 @@ public class DroneGRPCCommunication implements Runnable{
           responseObserver.onNext(response);
           //END OF RING => I'm the master
           if(request.getId()==drone.getId()){
+            System.out.println("New Master");
             drone.setMasterId(drone.getId());
-            //update list with all new positions
-            List<DroneInfo> currentNetwork = drone.getDronesCopy();
+            //update list with all new positions and batteries
+            List<DroneInfo> newList = new ArrayList<>();
             for (DroneRPC.AddDroneRequest dp : request.getUpdatePositionList()){
-              if(currentNetwork.stream().filter(d -> d.getId() == dp.getId()).count()==1){
-                DroneInfo updated = new DroneInfo(dp.getId(),dp.getIp(),dp.getPort());
-                updated.setBattery(dp.getBattery());
-                updated.setPosition(new Coordinate(dp.getPosition().getXCoord(),dp.getPosition().getYCoord()));
-                drone.updatePosAndBattery(updated);
-              }else {
-                //if a drone doesn't send his update is DEAD
-                drone.removeDroneFromList(new DroneInfo(dp.getId(),dp.getIp(),dp.getPort()));
-              }
-
+              DroneInfo updated = new DroneInfo(dp.getId(),dp.getIp(),dp.getPort());
+              updated.setBattery(dp.getBattery());
+              updated.setPosition(new Coordinate(dp.getPosition().getXCoord(),dp.getPosition().getYCoord()));
+              newList.add(updated);
             }
-
+            drone.setDrones(newList);
+            drone.addDroneInfo(drone.toDroneInfo());
             drone.justBecomeMaster();
           }else{
             //Middle of ring

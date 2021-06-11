@@ -75,8 +75,13 @@ public class Drone {
       justBecomeMaster();
     }else{//if I'm a normal drone I'll start ping the master. This thread is stopped if i become the master
       pingMaster = Executors.newSingleThreadScheduledExecutor();
-      DroneInfo master = this.getDronesCopy().stream().filter(d->d.getId()==this.getMasterId()).collect(Collectors.toList()).get(0);
-      pingMaster.scheduleAtFixedRate(()->droneGRPCManager.isAlive(master), 0, 5, TimeUnit.SECONDS);
+      pingMaster.scheduleAtFixedRate(() -> {
+        List<DroneInfo> master = this.getDronesCopy().stream().filter(d->d.getId()==this.getMasterId()).collect(Collectors.toList());
+        if(master.size()==1){
+          droneGRPCManager.isAlive(master.get(0));
+        }
+
+      }, 0, 5, TimeUnit.SECONDS);
     }
 
 
@@ -318,12 +323,13 @@ public class Drone {
             "batteryCharge=" + batteryCharge +",\n"+
             "masterId=" + masterId +",\n"+
             "position=" + position +",\n"+
+            "NETWORK= " + getDronesCopy() + "\n"+
             '}';
   }
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(12,9912);
+    Drone d = new Drone(4,994);
     d.startDrone();
   }
 
