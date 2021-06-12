@@ -196,6 +196,7 @@ public class DroneGRPCCommunication implements Runnable{
                   .setMasterId(drone.getMasterId()).build();
 
           responseObserver.onNext(response);
+          responseObserver.onCompleted();
 
           //I have to add the drone into my list
           DroneInfo di = new DroneInfo(request.getId(),request.getIp(),request.getPort());
@@ -209,7 +210,7 @@ public class DroneGRPCCommunication implements Runnable{
             }
           }
 
-          responseObserver.onCompleted();
+
         }
 
         /*Receiving the order to deliver*/
@@ -245,11 +246,12 @@ public class DroneGRPCCommunication implements Runnable{
 
           System.out.println("CONSEGNA EFFETTUATA");
           responseObserver.onNext(response);
+          responseObserver.onCompleted();
+
           //Save kilometers and deliveries number
           drone.addKilometers(d1+d2);
           drone.addDelivery();
 
-          responseObserver.onCompleted();
 
           drone.setDelivering(false);
           if(drone.getBatteryCharge()<15 || drone.isQuitting()){
@@ -269,12 +271,12 @@ public class DroneGRPCCommunication implements Runnable{
                   .setMasterId(drone.getMasterId()).build();
 
           responseObserver.onNext(response);
+          responseObserver.onCompleted();
 
           List<DroneInfo> listToUpdate = drone.getDronesCopy();
           listToUpdate.removeIf(d->d.getId()==request.getId());
           drone.setDrones(listToUpdate);
 
-          responseObserver.onCompleted();
         }
 
         @Override
@@ -290,6 +292,7 @@ public class DroneGRPCCommunication implements Runnable{
           //Respond and extract message
           DroneRPC.EmptyResponse response = DroneRPC.EmptyResponse.newBuilder().build();
           responseObserver.onNext(response);
+          responseObserver.onCompleted();
           //END OF RING => I'm the master
           if(request.getId()==drone.getId()){
             System.out.println("New Master");
@@ -322,7 +325,7 @@ public class DroneGRPCCommunication implements Runnable{
           }
 
 
-          responseObserver.onCompleted();
+
         }
 
         @Override
@@ -337,6 +340,8 @@ public class DroneGRPCCommunication implements Runnable{
           //Respond and extract message
           DroneRPC.EmptyResponse response = DroneRPC.EmptyResponse.newBuilder().build();
           responseObserver.onNext(response);
+          responseObserver.onCompleted();
+
 
           if(request.getBattery()>drone.getBatteryCharge()||(request.getBattery()==drone.getBatteryCharge() && request.getId()> drone.getId())){
             drone.setInElection(true);
@@ -356,7 +361,6 @@ public class DroneGRPCCommunication implements Runnable{
           }
 
 
-          responseObserver.onCompleted();
         }
 
         private void sendElected() {
@@ -454,7 +458,7 @@ public class DroneGRPCCommunication implements Runnable{
               .build();
 
       DroneRPC.OrderResponse response = stub.delivery(request);//the answer will contains the statistics after the delivery. This call should take ~ 5 seconds
-      //todo: aggiungere timeout e catch
+      //N.B. Per semplicita', si assume che un drone porta sempre a termine con successo la consegna a lui assegnata => This call cannot fail in this scenario
       //COLLECT STATS
       DroneStatsCollector dsc = drone.getDroneStatsCollector();
       dsc.addDelivery(bestDrone.getId());

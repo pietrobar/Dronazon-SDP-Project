@@ -340,7 +340,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(2,992);
+    Drone d = new Drone(99,9999);
     d.startDrone();
   }
 
