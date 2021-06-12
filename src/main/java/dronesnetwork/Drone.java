@@ -22,31 +22,38 @@ public class Drone {
   private final String ip="localhost";
   private final int port;
   private final String administratorServerAddress="http://localhost:1337/drone_interface";
-
-  private boolean inElection;
-  //Communication
-  private DroneGRPCCommunication droneGRPCManager;
-  private DroneOrderManager droneOrderManager;
-
-  private int deliveries;
-  private float kilometers;
-  private int batteryCharge;
-  private int masterId=-1;
-
-  //pollution
-  private DronePollutionSensor dronePollutionSensor;
-
   //info received from server administrator
   private Coordinate position;
   private List<DroneInfo> drones;
 
-  private DroneStatsCollector droneStatsCollector;
-  ScheduledExecutorService statSender;//only master
-  ScheduledExecutorService statPrinter;
-  ScheduledExecutorService pingMaster;
+  //Statistics
+  private int deliveries;
+  private float kilometers;
+  private int batteryCharge;
+  private int masterId=-1;
+  //Pollution
+  private DronePollutionSensor dronePollutionSensor;
+
+  //State info
+  private boolean inElection=false;
   private boolean quit=false;
   private boolean delivering=false;
 
+  //Communication
+  private DroneGRPCCommunication droneGRPCManager;
+  private DroneOrderManager droneOrderManager;
+
+  //Master only components
+  private DroneStatsCollector droneStatsCollector;
+  ScheduledExecutorService statSender;
+
+  //Normal only components
+  ScheduledExecutorService pingMaster;
+
+  //Print statistics
+  ScheduledExecutorService statPrinter;
+
+  //Syncing object
   public final Object terminationObj = new Object();
 
   public Drone(int id, int port) {

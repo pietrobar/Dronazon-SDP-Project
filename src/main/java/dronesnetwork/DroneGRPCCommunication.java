@@ -55,7 +55,6 @@ public class DroneGRPCCommunication implements Runnable{
         if(node.getId()!=drone.getId()){
           Thread t = new Thread(() -> {
             final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+node.getPort()).usePlaintext().build();
-            //todo: gestire le eccezioni sulla connessione
             DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
 
             DroneRPC.AddDroneRequest request = DroneRPC.AddDroneRequest.newBuilder()
@@ -264,20 +263,7 @@ public class DroneGRPCCommunication implements Runnable{
 
         }
 
-        @Override
-        public void deadDrone(DroneRPC.DeadDroneRequest request, StreamObserver<DroneRPC.DeadDroneResponse> responseObserver) {
-          DroneRPC.DeadDroneResponse response = DroneRPC.DeadDroneResponse.newBuilder()
-                  .setId(drone.getId())
-                  .setMasterId(drone.getMasterId()).build();
 
-          responseObserver.onNext(response);
-          responseObserver.onCompleted();
-
-          List<DroneInfo> listToUpdate = drone.getDronesCopy();
-          listToUpdate.removeIf(d->d.getId()==request.getId());
-          drone.setDrones(listToUpdate);
-
-        }
 
         @Override
         public void ping(DroneRPC.PingRequest request, StreamObserver<DroneRPC.PingResponse> responseObserver) {

@@ -5,12 +5,11 @@ package restserver.services;
  */
 import restserver.beans.DroneInfo;
 import restserver.beans.DronesInfoManager;
-import restserver.beans.ResponseInitialization;
 import restserver.beans.StatsManager;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
-import java.util.List;
+
 
 /*
 * This interface serves the purpose to allow a ClientAdministrator to interact with the server
@@ -30,16 +29,16 @@ public class AdminInterface {
     return Response.ok(DronesInfoManager.getInstance().getDrones()).build();
   }
 
-  //add drone into list//todo: da rimuovere, mi serve solo per il debugging con ARC
-  @Path("add-drone")
-  @POST
-  @Consumes({"application/json", "application/xml"})
-  public Response addDrone(DroneInfo drone){
-    List<DroneInfo> res = DronesInfoManager.getInstance().add(drone);
-
-    return res!=null? Response.ok().build() : Response.notModified("Wrong ID").build();
-
-  }
+//  //add drone into list//todo: da rimuovere, mi serve solo per il debugging con ARC
+//  @Path("add-drone")
+//  @POST
+//  @Consumes({"application/json", "application/xml"})
+//  public Response addDrone(DroneInfo drone){
+//    List<DroneInfo> res = DronesInfoManager.getInstance().add(drone);
+//
+//    return res!=null? Response.ok().build() : Response.notModified("Wrong ID").build();
+//
+//  }
 //   Json Example:
 //    {
 //      "id": 1,

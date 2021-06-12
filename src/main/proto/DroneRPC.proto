@@ -72,8 +72,6 @@ service DroneService {
 
   rpc delivery(OrderRequest) returns (OrderResponse);
 
-  rpc deadDrone(DeadDroneRequest) returns (DeadDroneResponse);
-
   rpc ping(PingRequest) returns (PingResponse);
 
   rpc election(Election) returns (EmptyResponse);
