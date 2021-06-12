@@ -194,8 +194,8 @@ public class Drone {
     return kilometers;
   }
 
-  public synchronized void setKilometers(float kilometers) {
-    this.kilometers = kilometers;
+  public synchronized void addKilometers(float kilometers) {
+    this.kilometers += kilometers;
   }
 
   public synchronized List<DroneInfo> getDronesCopy() {

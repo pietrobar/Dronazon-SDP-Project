@@ -246,7 +246,7 @@ public class DroneGRPCCommunication implements Runnable{
           System.out.println("CONSEGNA EFFETTUATA");
           responseObserver.onNext(response);
           //Save kilometers and deliveries number
-          drone.setKilometers(d1+d2);
+          drone.addKilometers(d1+d2);
           drone.addDelivery();
 
           responseObserver.onCompleted();
