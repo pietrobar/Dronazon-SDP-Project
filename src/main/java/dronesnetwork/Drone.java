@@ -95,9 +95,9 @@ public class Drone {
     //start thread to read from stdIn
     Thread waitForQuit = new Thread(() -> {
       Scanner scanner = new Scanner(System.in);
-      while(!scanner.nextLine().equals("quit")){
+      do{
         System.out.println("Press 'quit' to stop the drone");
-      }
+      }while(!scanner.nextLine().equals("quit"));
       synchronized (terminationObj){
         terminationObj.notify();
       }
@@ -133,43 +133,53 @@ public class Drone {
   }
 
   public void leaveNetwork() {
-    if(!this.isDelivering()){//if is delivering it will be unlocked by delivery() in grpc server
-      if(this.getId()==this.getMasterId()){//if I'm the master
-        //1 - my delivery is done
-        //2 - disconnect from MQTT broker
-        synchronized (droneOrderManager){
-          droneOrderManager.notifyAll();//wake up DroneOrderManager thread that will disconnect from broker because isQuitting is set to false
-          //I have to notify all because also threads that have to assign a order are synced on this object
+    synchronized (terminationObj){
+      if(this.isDelivering()){//If O'm delivering I have to wait
+        setQuit(true);
+        try {
+          terminationObj.wait();//waking up from this wait I will be sure that my delivery is completed
+        } catch (InterruptedException e) {
+          e.printStackTrace();
         }
-        //3 - wait for assign of left deliveries
-        synchronized (droneOrderManager.freeDronesSyncer){
-          while (droneOrderManager.getOrders().size()>0){//while there are still orders to deliver
-            try {
-              droneOrderManager.freeDronesSyncer.wait();
-            } catch (InterruptedException e) {
-              e.printStackTrace();
-            }
+      }
+    }
+
+    if(this.getId()==this.getMasterId()){//if I'm the master
+      //1 - my delivery is done
+      //2 - disconnect from MQTT broker
+      synchronized (droneOrderManager){
+        droneOrderManager.notifyAll();//wake up DroneOrderManager thread that will disconnect from broker because isQuitting is set to false
+        //I have to notify all because also threads that have to assign a order are synced on this object
+      }
+      //3 - wait for assign of left deliveries
+      synchronized (droneOrderManager.freeDronesSyncer){
+        while (droneOrderManager.getOrders().size()>0){//while there are still orders to deliver
+          try {
+            droneOrderManager.freeDronesSyncer.wait();
+          } catch (InterruptedException e) {
+            e.printStackTrace();
           }
         }
-        //4 - close the communications with other drones
-        //5 - send statistics to server administrator
-        statSender.shutdown();
-        statPrinter.shutdown();
-        droneStatsCollector.generateAndSendStatistic();
-        //6 - Ask server admin to exit the system
-        DroneRESTCommunication.quit(this);
-
-      }else{
-        //I'm NOT the master
-        //1 - my delivery is done
-        //2 - close the communications with other drones
-        //3 - Ask server admin to exit the system
-        statPrinter.shutdown();
-        DroneRESTCommunication.quit(this);
       }
-      System.out.println("\033[0;35m"+"BYE BYE"+"\033[0m");
-      System.exit(0);
+      //4 - close the communications with other drones
+      //5 - send statistics to server administrator
+      statSender.shutdown();
+      statPrinter.shutdown();
+      droneStatsCollector.generateAndSendStatistic();
+      //6 - Ask server admin to exit the system
+      DroneRESTCommunication.quit(this);
+
+    }else{
+      //I'm NOT the master
+      //1 - my delivery is done
+      //2 - close the communications with other drones
+      //3 - Ask server admin to exit the system
+      statPrinter.shutdown();
+      DroneRESTCommunication.quit(this);
     }
+    System.out.println("\033[0;35m"+"BYE BYE"+"\033[0m");
+    System.exit(0);
+
   }
 
   public synchronized int getDeliveries() {
