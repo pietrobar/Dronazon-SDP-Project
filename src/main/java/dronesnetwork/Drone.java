@@ -133,9 +133,9 @@ public class Drone {
   }
 
   public void leaveNetwork() {
+    setQuit(true);
     synchronized (terminationObj){
       if(this.isDelivering()){//If O'm delivering I have to wait
-        setQuit(true);
         try {
           terminationObj.wait();//waking up from this wait I will be sure that my delivery is completed
         } catch (InterruptedException e) {
@@ -340,7 +340,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(99,9999);
+    Drone d = new Drone(6,996);
     d.startDrone();
   }
 

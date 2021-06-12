@@ -93,7 +93,7 @@ public class DroneOrderManager implements Runnable{
 
       synchronized (this) {
         while (!drone.isQuitting()){
-          wait();//called just one time => while could be if
+          wait();
         }
         client.disconnect();
       }
