@@ -202,6 +202,12 @@ public class DroneGRPCCommunication implements Runnable{
           di.setBattery(100);//needed by master if a drone is new to assign a delivery
           di.setPosition(new Coordinate(request.getPosition().getXCoord(),request.getPosition().getYCoord()));
           drone.addDroneInfo(di);
+          //I have to notify there is a new drone here too if I'm the master
+          if(drone.getMasterId()==drone.getId() && drone.getDroneOrderManager()!=null){
+            synchronized (drone.getDroneOrderManager().freeDronesSyncer) {
+              drone.getDroneOrderManager().freeDronesSyncer.notifyAll();
+            }
+          }
 
           responseObserver.onCompleted();
         }
@@ -210,7 +216,7 @@ public class DroneGRPCCommunication implements Runnable{
         @Override
         public void delivery(DroneRPC.OrderRequest request, StreamObserver<DroneRPC.OrderResponse> responseObserver) {
           drone.setDelivering(true);
-          drone.setBatteryCharge(drone.getBatteryCharge()-10);//helps the election
+          drone.setBatteryCharge(drone.getBatteryCharge()-10);//at begin of method helps the election
           try {
             Thread.sleep(5000);
           } catch (InterruptedException e) {
@@ -228,7 +234,7 @@ public class DroneGRPCCommunication implements Runnable{
           //take pollution values
           List<Float>  list = drone.getDronePollutionSensor().getMeanList();
           drone.getDronePollutionSensor().clearMeanList();
-
+          //Send Statistics to master
           DroneRPC.OrderResponse response = DroneRPC.OrderResponse.newBuilder()
                   .setTimestamp(LocalDateTime.now().format(formatter))
                   .setCurrentPos(request.getDeliveryPoint())
@@ -239,6 +245,9 @@ public class DroneGRPCCommunication implements Runnable{
 
           System.out.println("CONSEGNA EFFETTUATA");
           responseObserver.onNext(response);
+          //Save kilometers and deliveries number
+          drone.setKilometers(d1+d2);
+          drone.addDelivery();
 
           responseObserver.onCompleted();
 
@@ -420,21 +429,19 @@ public class DroneGRPCCommunication implements Runnable{
 
   /*Called by a thread create by DroneOrderManager's callback to assign a delivery to a free drone*/
   public void assignOrder(Order order){
-
-    DroneOrderManager droneOrderManager = drone.getDroneOrderManager();
-    synchronized (drone.getDroneOrderManager()){
-      while(findBestDrone(order)==null) {//all drones are occupied
+    DroneOrderManager dom = drone.getDroneOrderManager();
+    DroneInfo bestDrone=null;
+    synchronized (dom.freeDronesSyncer){
+      while(findBestDrone(order)==null){//all drones are occupied
         try {
-          droneOrderManager.wait();
+          dom.freeDronesSyncer.wait();//all thread blocked are count as the number of order to assign
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
-
       //here I'm sure there is at least one free drone
-      DroneInfo bestDrone = findBestDrone(order);//this could be null BUT drone.getDronesCopy().size()==occupiedDrones.size() assure it cannot be null
-
-      droneOrderManager.addOccupiedDrone(bestDrone);
+      bestDrone =  findBestDrone(order);//this could be null BUT while assure it cannot be null
+      dom.addOccupiedDrone(bestDrone);
 
       //call GRPC to that drone
       final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+bestDrone.getPort()).usePlaintext().build();
@@ -447,7 +454,7 @@ public class DroneGRPCCommunication implements Runnable{
               .build();
 
       DroneRPC.OrderResponse response = stub.delivery(request);//the answer will contains the statistics after the delivery. This call should take ~ 5 seconds
-
+      //todo: aggiungere timeout e catch
       //COLLECT STATS
       DroneStatsCollector dsc = drone.getDroneStatsCollector();
       dsc.addDelivery(bestDrone.getId());
@@ -461,16 +468,13 @@ public class DroneGRPCCommunication implements Runnable{
       bestDrone.setBattery(response.getBattery());
       drone.updatePosAndBattery(bestDrone);
 
-      //once the order is done I want to remove it from the list
-      droneOrderManager.removeOrder(order);
-
       channel.shutdown();
-
-
-      droneOrderManager.removeOccupiedDrone(bestDrone);
+      //once the order is done I want to remove it from the list
+      dom.removeOrder(order);
+      dom.removeOccupiedDrone(bestDrone);
 
       //freed one drone I can notify his freedom
-      drone.getDroneOrderManager().notifyAll();
+      dom.freeDronesSyncer.notifyAll();
     }
 
   }
@@ -494,7 +498,8 @@ public class DroneGRPCCommunication implements Runnable{
     //from the sorted list I want a free drone
     for (int i = drones.size()-1; i>=0; i--){
       if(!drone.getDroneOrderManager().getOccupiedDrones().contains(drones.get(i))){
-        return drones.get(i);
+        if(drones.get(i).getBattery()>15)
+          return drones.get(i);
       }
     }
     return null;

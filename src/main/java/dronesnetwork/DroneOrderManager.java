@@ -23,12 +23,14 @@ public class DroneOrderManager implements Runnable{
   private final List<Order> orders;
   private final List<DroneInfo> occupiedDrones;
   Drone drone;
+  public final Object freeDronesSyncer;//used by threads create to assign order to sync on before occupying a drone
 
 
   public DroneOrderManager(Drone drone){
     orders = new ArrayList<>();
     this.occupiedDrones = new ArrayList<>();
     this.drone = drone;
+    freeDronesSyncer = new Object();
   }
 
   private synchronized void addOrder(Order order){

@@ -138,13 +138,14 @@ public class Drone {
         //1 - my delivery is done
         //2 - disconnect from MQTT broker
         synchronized (droneOrderManager){
-          droneOrderManager.notify();
+          droneOrderManager.notifyAll();//wake up DroneOrderManager thread that will disconnect from broker because isQuitting is set to false
+          //I have to notify all because also threads that have to assign a order are synced on this object
         }
         //3 - wait for assign of left deliveries
-        synchronized (droneOrderManager){
+        synchronized (droneOrderManager.freeDronesSyncer){
           while (droneOrderManager.getOrders().size()>0){//while there are still orders to deliver
             try {
-              droneOrderManager.wait();
+              droneOrderManager.freeDronesSyncer.wait();
             } catch (InterruptedException e) {
               e.printStackTrace();
             }
@@ -175,8 +176,8 @@ public class Drone {
     return deliveries;
   }
 
-  public synchronized void setDeliveries(int deliveries) {
-    this.deliveries = deliveries;
+  public synchronized void addDelivery() {
+    this.deliveries +=1;
   }
 
   public synchronized float getKilometers() {
@@ -329,7 +330,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(4,994);
+    Drone d = new Drone(2,992);
     d.startDrone();
   }
 
