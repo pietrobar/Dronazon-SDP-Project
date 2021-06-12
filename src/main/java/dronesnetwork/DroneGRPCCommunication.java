@@ -292,7 +292,7 @@ public class DroneGRPCCommunication implements Runnable{
               newList.add(updated);
             }
             drone.setDrones(newList);
-            drone.addDroneInfo(drone.toDroneInfo());
+            drone.addDroneInfo(drone.toDroneInfo());//add myself into list
             drone.justBecomeMaster();
           }else{
             //Middle of ring
@@ -473,16 +473,16 @@ public class DroneGRPCCommunication implements Runnable{
   private DroneInfo findBestDrone(Order order) {
     //sorting criteria: free -> distance -> battery -> ID
     List<DroneInfo> drones = drone.getDronesCopy();
-    drones.sort((o1, o2) -> {
+    drones.sort((d1, d2) -> {
 //        0: if (x==y)
 //       -1: if (x < y)
 //        1: if (x > y)
-      if(distance(o1.getPosition(),order.getPickUpPoint())>distance(o2.getPosition(),order.getPickUpPoint())) return  1;
-      else if(distance(o1.getPosition(),order.getPickUpPoint())<distance(o2.getPosition(),order.getPickUpPoint())) return -1;
-      else if(o1.getBattery() > o2.getBattery()) return 1;//distance is equal so compare by battery
-      else if(o1.getBattery() < o2.getBattery()) return -1;
-      else if(o1.getId()>o2.getId()) return 1;//distance and battery are equals => compare by id
-      else if(o1.getId()<o2.getId()) return -1;
+      if(distance(d1.getPosition(),order.getPickUpPoint())>distance(d2.getPosition(),order.getPickUpPoint())) return  1;
+      else if(distance(d1.getPosition(),order.getPickUpPoint())<distance(d2.getPosition(),order.getPickUpPoint())) return -1;
+      else if(d1.getBattery() > d2.getBattery()) return 1;//distance is equal so compare by battery
+      else if(d1.getBattery() < d2.getBattery()) return -1;
+      else if(d1.getId()>d2.getId()) return 1;//distance and battery are equals => compare by id
+      else if(d1.getId()<d2.getId()) return -1;
       return 0;
     });
     //from the sorted list I want a free drone

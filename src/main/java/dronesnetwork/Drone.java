@@ -327,7 +327,10 @@ public class Drone {
   }
 
   public DroneInfo toDroneInfo(){
-    return new DroneInfo(this.getId(),this.getIp(),this.getPort());
+    DroneInfo res =  new DroneInfo(this.getId(),this.getIp(),this.getPort());
+    res.setBattery(this.getBatteryCharge());
+    res.setPosition(this.getPosition());
+    return res;
   }
 
   @Override
@@ -347,7 +350,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(6,996);
+    Drone d = new Drone(88,988);
     d.startDrone();
   }
 
