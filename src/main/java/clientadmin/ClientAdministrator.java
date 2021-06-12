@@ -127,7 +127,7 @@ public class ClientAdministrator {
 
   private static void getStats(Client client, int n) {
     WebResource webResource = client
-            .resource(url+"get-stats/"+n);
+            .resource(url+"get-stats/"+n);//todo:prendi n statistiche
     ClientResponse response = webResource.accept("application/json")
             .get(ClientResponse.class);
 
