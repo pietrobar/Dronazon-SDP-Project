@@ -30,7 +30,7 @@ message OrderRequest{
 message OrderResponse{
   string timestamp = 1;
   Coordinate currentPos = 2;
-  int32 kilometers = 3;
+  float kilometers = 3;
   repeated float pollutionValues = 4;
   int32 battery = 5;
 }

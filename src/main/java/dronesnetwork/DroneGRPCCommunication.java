@@ -224,9 +224,9 @@ public class DroneGRPCCommunication implements Runnable{
           }
           //calculate km to get to delivery point and pickup point
           Coordinate c1 = new Coordinate(request.getPickUpPoint().getXCoord(),request.getPickUpPoint().getYCoord());
-          int d1 = distance(drone.getPosition(),c1);
+          float d1 = distance(drone.getPosition(),c1);
           Coordinate c2 = new Coordinate(request.getDeliveryPoint().getXCoord(),request.getDeliveryPoint().getYCoord());
-          int d2 = distance(c1,c2);
+          float d2 = distance(c1,c2);
 
           drone.setPosition(c2);
           DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -505,7 +505,7 @@ public class DroneGRPCCommunication implements Runnable{
     return null;
   }
 
-  private int distance(Coordinate from,Coordinate to){
-    return (int)Math.sqrt(Math.pow(to.getX()-from.getX(),2)+Math.pow(to.getY()-from.getY(),2));
+  private float distance(Coordinate from,Coordinate to){
+    return (float) Math.sqrt(Math.pow(to.getX()-from.getX(),2)+Math.pow(to.getY()-from.getY(),2));
   }
 }
