@@ -47,6 +47,7 @@ public class DroneGRPCCommunication implements Runnable{
     List<DroneInfo> drones = drone.getDronesCopy();
     if (drones.size()==1){
       drone.setMasterId(drone.getId());
+      drone.justBecomeMaster();
     }else{
       //otherwise broadcast to every other node
       List<Thread> threads = new ArrayList<>();

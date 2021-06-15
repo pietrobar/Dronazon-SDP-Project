@@ -78,9 +78,7 @@ public class Drone {
       this.wait();//wait for DroneGRPCCommunication to tell me he has finished insertNetwork()
     }
 
-    if(this.id==this.getMasterId()){
-      justBecomeMaster();
-    }else{//if I'm a normal drone I'll start ping the master. This thread is stopped if i become the master
+    if(!(this.id==this.getMasterId())){//if I'm a normal drone I'll start ping the master. This thread is stopped if i become the master
       pingMaster = Executors.newSingleThreadScheduledExecutor();
       pingMaster.scheduleAtFixedRate(() -> {
         List<DroneInfo> master = this.getDronesCopy().stream().filter(d->d.getId()==this.getMasterId()).collect(Collectors.toList());
@@ -350,7 +348,8 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    Drone d = new Drone(88,988);
+    int param = 2;
+    Drone d = new Drone(param,990+param);
     d.startDrone();
   }
 
