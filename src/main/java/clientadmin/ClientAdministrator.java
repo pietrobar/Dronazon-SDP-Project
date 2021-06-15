@@ -19,6 +19,7 @@ import java.util.Scanner;
  */
 public class ClientAdministrator {
   private static final String url="http://localhost:1337/dronazon_service/";
+  private static final String dateRegex="^\\d{4}\\-(0?[1-9]|1[012])\\-(0?[1-9]|[12][0-9]|3[01]) ([0-1]?[0-9]|2[0-3]):[0-5][0-9]$";
 
 
   public static void main(String[] args) {
@@ -61,10 +62,16 @@ public class ClientAdministrator {
   }
 
   private static void getKMBetweenTimestamps(Client client, Scanner in) {
-    System.out.println("Insert time interval (yyyy-MM-dd HH:mm):");
-    //todo: forse serve fare il controllo sull'input
-    String t1 = in.nextLine();
-    String t2 = in.nextLine();
+    Scanner scanner = new Scanner(System.in);
+    String t1;
+    String t2;
+    do {
+      System.out.println("Insert time interval (yyyy-MM-dd HH:mm):");
+      t1=scanner.nextLine();
+      t2=scanner.nextLine();
+    }
+    while (!t1.matches(dateRegex)||!t2.matches(dateRegex));
+    System.out.println(t1 +", "+t2);
     WebResource webResource = client
             .resource(url+"get-kilometers/"+processed(t1)+"/"+processed(t2));
     ClientResponse response = webResource.accept("application/json")
@@ -81,10 +88,16 @@ public class ClientAdministrator {
   }
 
   private static void getDeliveriesBetweenTimestamps(Client client, Scanner in) {
-    System.out.println("Insert time interval (yyyy-MM-dd HH:mm):");
-    //todo: forse serve fare il controllo sull'input
-    String t1 = in.nextLine();
-    String t2 = in.nextLine();
+    Scanner scanner = new Scanner(System.in);
+    String t1;
+    String t2;
+    do {
+      System.out.println("Insert time interval (yyyy-MM-dd HH:mm):");
+      t1=scanner.nextLine();
+      t2=scanner.nextLine();
+    }
+    while (!t1.matches(dateRegex)||!t2.matches(dateRegex));
+
     WebResource webResource = client
             .resource(url+"get-deliveries/"+processed(t1)+"/"+processed(t2));
     ClientResponse response = webResource.accept("application/json")
@@ -126,8 +139,18 @@ public class ClientAdministrator {
   }
 
   private static void getStats(Client client, int n) {
+    Scanner scanner = new Scanner(System.in);
+
+    String input;
+    do {
+      System.out.println("How many statistics would you like to see? (int)");
+      input=scanner.nextLine();
+    }
+    while (!input.matches("\\d+"));
+
+
     WebResource webResource = client
-            .resource(url+"get-stats/"+n);//todo:prendi n statistiche
+            .resource(url+"get-stats/"+Integer.parseInt(input));
     ClientResponse response = webResource.accept("application/json")
             .get(ClientResponse.class);
 

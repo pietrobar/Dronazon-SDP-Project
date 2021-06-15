@@ -28,7 +28,7 @@ public class DroneStatsCollector {
 
   }
   public void generateAndSendStatistic(){
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
 
     //DELIVERIES

@@ -45,7 +45,7 @@ public class StatsManager {
 
   public synchronized List<Statistic> getNStats(int n) {
     if(stats.size()<n) return stats;
-    return getStats().subList(stats.size()-n, stats.size()-1);
+    return getStats().subList(stats.size()-n, stats.size());
   }
 
   public float getDeliveriesBetweenTimestamps(String t1, String t2) {

@@ -352,7 +352,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    int param = 6;
+    int param = 10;
     Drone d = new Drone(param,990+param);
     d.startDrone();
   }

@@ -29,7 +29,7 @@ public class AdminInterface {
     return Response.ok(DronesInfoManager.getInstance().getDrones()).build();
   }
 
-//  //add drone into list//todo: da rimuovere, mi serve solo per il debugging con ARC
+//  //add drone into list
 //  @Path("add-drone")
 //  @POST
 //  @Consumes({"application/json", "application/xml"})
