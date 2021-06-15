@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class DroneGRPCCommunication implements Runnable{
   private final Drone drone;
+  private Server grpcServer;
 
 
   public DroneGRPCCommunication(Drone drone){
@@ -184,7 +185,7 @@ public class DroneGRPCCommunication implements Runnable{
   public void reception(){
     try {
 
-      Server server = ServerBuilder.forPort(drone.getPort()).addService(new DroneServiceGrpc.DroneServiceImplBase() {
+      this.grpcServer = ServerBuilder.forPort(drone.getPort()).addService(new DroneServiceGrpc.DroneServiceImplBase() {
         /*
         * In addDrone() I have to respond directly to the sender, so that he knows if i'm alive*/
         @Override
@@ -215,52 +216,52 @@ public class DroneGRPCCommunication implements Runnable{
         /*Receiving the order to deliver*/
         @Override
         public void delivery(DroneRPC.OrderRequest request, StreamObserver<DroneRPC.OrderResponse> responseObserver) {
-          drone.setDelivering(true);
-          drone.setBatteryCharge(drone.getBatteryCharge()-10);//at begin of method helps the election
-          try {
-            Thread.sleep(5000);
-          } catch (InterruptedException e) {
-            e.printStackTrace();
-          }
-          //calculate km to get to delivery point and pickup point
-          Coordinate c1 = new Coordinate(request.getPickUpPoint().getXCoord(),request.getPickUpPoint().getYCoord());
-          float d1 = distance(drone.getPosition(),c1);
-          Coordinate c2 = new Coordinate(request.getDeliveryPoint().getXCoord(),request.getDeliveryPoint().getYCoord());
-          float d2 = distance(c1,c2);
+          if(!drone.isQuitting()){
+            drone.setDelivering(true);
+            drone.setBatteryCharge(drone.getBatteryCharge()-10);//at begin of method helps the election
+            try {
+              Thread.sleep(5000);
+            } catch (InterruptedException e) {
+              e.printStackTrace();
+            }
+            //calculate km to get to delivery point and pickup point
+            Coordinate c1 = new Coordinate(request.getPickUpPoint().getXCoord(),request.getPickUpPoint().getYCoord());
+            float d1 = distance(drone.getPosition(),c1);
+            Coordinate c2 = new Coordinate(request.getDeliveryPoint().getXCoord(),request.getDeliveryPoint().getYCoord());
+            float d2 = distance(c1,c2);
 
-          drone.setPosition(c2);
-          DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            drone.setPosition(c2);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-          //take pollution values
-          List<Float>  list = drone.getDronePollutionSensor().getMeanList();
-          drone.getDronePollutionSensor().clearMeanList();
-          //Send Statistics to master
-          DroneRPC.OrderResponse response = DroneRPC.OrderResponse.newBuilder()
-                  .setTimestamp(LocalDateTime.now().format(formatter))
-                  .setCurrentPos(request.getDeliveryPoint())
-                  .setKilometers(d1+d2)
-                  .addAllPollutionValues(list)
-                  .setBattery(drone.getBatteryCharge())
-                  .build();
+            //take pollution values
+            List<Float>  list = drone.getDronePollutionSensor().getMeanList();
+            drone.getDronePollutionSensor().clearMeanList();
+            //Send Statistics to master
+            DroneRPC.OrderResponse response = DroneRPC.OrderResponse.newBuilder()
+                    .setTimestamp(LocalDateTime.now().format(formatter))
+                    .setCurrentPos(request.getDeliveryPoint())
+                    .setKilometers(d1+d2)
+                    .addAllPollutionValues(list)
+                    .setBattery(drone.getBatteryCharge())
+                    .build();
 
-          System.out.println("CONSEGNA EFFETTUATA");
-          responseObserver.onNext(response);
-          responseObserver.onCompleted();
+            System.out.println("CONSEGNA EFFETTUATA");
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
 
-          //Save kilometers and deliveries number
-          drone.addKilometers(d1+d2);
-          drone.addDelivery();
+            //Save kilometers and deliveries number
+            drone.addKilometers(d1+d2);
+            drone.addDelivery();
 
 
-          drone.setDelivering(false);
-          if(drone.getBatteryCharge()<15 || drone.isQuitting()){
-            drone.setQuit(true);//in case is < 15
-            synchronized (drone.terminationObj){
-              drone.terminationObj.notify();
+            drone.setDelivering(false);
+            if(drone.getBatteryCharge()<15 || drone.isQuitting()){
+              drone.setQuit(true);//in case is < 15
+              synchronized (drone.terminationObj){
+                drone.terminationObj.notify();
+              }
             }
           }
-
-
         }
 
 
@@ -361,6 +362,7 @@ public class DroneGRPCCommunication implements Runnable{
           }catch (Exception e){
             //DEAD DRONE delete from my list
             drone.removeDroneFromList(successor);
+            channel.shutdown();
             sendElected();//if it fails I have to repeat this method, this time it will be called on the new successor
           }
           channel.shutdown();
@@ -377,6 +379,13 @@ public class DroneGRPCCommunication implements Runnable{
           }catch (Exception e){
             //DEAD DRONE delete from my list
             drone.removeDroneFromList(successor);
+            channel.shutdown();
+            //if it fails I'll send the message to the next one if is not the new master
+            if(successor.getId()!=request.getId())
+              forwardElected(request);
+            else//if the new master is dead if I don't start an election the message could go infinitely
+              startElection();
+
           }
           channel.shutdown();
         }
@@ -393,6 +402,9 @@ public class DroneGRPCCommunication implements Runnable{
           }catch (Exception e){
             //DEAD DRONE delete from my list
             drone.removeDroneFromList(successor);
+            //if it fails I'll send the message to the next one
+            channel.shutdown();
+            sendElection(request);
           }
           channel.shutdown();
         }
@@ -400,11 +412,11 @@ public class DroneGRPCCommunication implements Runnable{
 
       }).build();
 
-      server.start();
+      grpcServer.start();
 
       System.out.println("Drone reception started! "+ drone);
 
-      server.awaitTermination();
+      grpcServer.awaitTermination();
 
     } catch (IOException e) {
 
@@ -497,5 +509,9 @@ public class DroneGRPCCommunication implements Runnable{
 
   private float distance(Coordinate from,Coordinate to){
     return (float) Math.sqrt(Math.pow(to.getX()-from.getX(),2)+Math.pow(to.getY()-from.getY(),2));
+  }
+
+  public void serverShutdown(){
+    this.grpcServer.shutdown();
   }
 }

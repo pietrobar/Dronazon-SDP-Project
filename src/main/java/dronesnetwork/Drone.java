@@ -167,9 +167,11 @@ public class Drone {
         }
       }
       //4 - close the communications with other drones
+      droneGRPCManager.serverShutdown();
       //5 - send statistics to server administrator
       statSender.shutdown();
       statPrinter.shutdown();
+      printStatistics();
       droneStatsCollector.generateAndSendStatistic();
       //6 - Ask server admin to exit the system
       DroneRESTCommunication.quit(this);
@@ -178,8 +180,10 @@ public class Drone {
       //I'm NOT the master
       //1 - my delivery is done
       //2 - close the communications with other drones
+      droneGRPCManager.serverShutdown();
       //3 - Ask server admin to exit the system
       statPrinter.shutdown();
+      printStatistics();
       DroneRESTCommunication.quit(this);
     }
     System.out.println("\033[0;35m"+"BYE BYE"+"\033[0m");
