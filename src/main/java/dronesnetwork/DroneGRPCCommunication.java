@@ -71,7 +71,7 @@ public class DroneGRPCCommunication implements Runnable{
               drone.setMasterId(response.getMasterId());
             }catch (Exception e){
               deadDrones.add(node);
-              drone.removeDroneFromList(node);//Remove dead drone'
+              drone.removeDroneFromList(node);//Remove dead drone
             }
             channel.shutdown();
           });
@@ -89,17 +89,15 @@ public class DroneGRPCCommunication implements Runnable{
       if (drone.getDronesCopy().size()==1)
         drone.setMasterId(drone.getId());
 
-      if (!(drone.getMasterId()==drone.getId())){
-        for(DroneInfo dead : deadDrones){
-          if(dead.getId()==drone.getMasterId()){
-            new Thread(this::startElection).start();
 
-          }else{
-            //DEAD DRONE delete from my list
-            drone.removeDroneFromList(dead);
-          }
-        }
+      for(DroneInfo dead : deadDrones){
+          //DEAD DRONE delete from my list
+          drone.removeDroneFromList(dead);
       }
+      if(drone.getDronesCopy().stream().noneMatch(d-> d.getId()==drone.getMasterId())){
+        new Thread(this::startElection).start();
+      }
+
 
 
 
@@ -136,6 +134,7 @@ public class DroneGRPCCommunication implements Runnable{
         //DEAD DRONE delete from my list
         drone.removeDroneFromList(successor);
         channel.shutdown();
+        drone.setInElection(false);
         startElection();//restart the election because this one failed!
       }
     }
