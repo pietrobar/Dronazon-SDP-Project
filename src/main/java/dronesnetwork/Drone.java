@@ -333,22 +333,22 @@ public class Drone {
 
   @Override
   public String toString() {
-    return "DRONE{" +
+    return "\u001B[47m"+"\u001B[30m" +"DRONE{" +
             "id=" + id +",\n"+
-            "ip='" + ip  +",\n"+
             "port=" + port +",\n"+
-            "deliveries=" + deliveries +",\n"+
-            "kilometers=" + kilometers +",\n"+
-            "batteryCharge=" + batteryCharge +",\n"+
             "masterId=" + masterId +",\n"+
             "position=" + position +",\n"+
             "NETWORK= " + getDronesCopy() + "\n"+
-            '}';
+            "Statistics: {"+ "\n"+
+            "\tdeliveries=" + deliveries +",\n"+
+            "\tkilometers=" + kilometers +",\n"+
+            "\tbatteryCharge=" + batteryCharge +",\n\t}\n"+
+            '}'+"\u001B[0m";
   }
 
 
   public static void main(String[] args) throws InterruptedException {
-    int param = 5;
+    int param = 6;
     Drone d = new Drone(param,990+param);
     d.startDrone();
   }
