@@ -140,7 +140,7 @@ public class Drone {
   public void leaveNetwork() {
     setQuit(true);
     synchronized (terminationObj){
-      while(this.isDelivering()){//If O'm delivering I have to wait
+      while(this.isDelivering()){//If I'm delivering I have to wait
         try {
           terminationObj.wait();//waking up from this wait I will be sure that my delivery is completed
         } catch (InterruptedException e) {
@@ -148,6 +148,12 @@ public class Drone {
         }
         if(this.getMasterId()!=this.getId())//if I'm not the master I can already close my server -> I'll never receive other communications
           droneGRPCManager.serverShutdown();
+        else{
+          synchronized (this.getDroneOrderManager().freeDronesSyncer){//add myself in list of occupied drones => can't receive any more deliveries
+            this.getDroneOrderManager().addOccupiedDrone(this.getDroneInfo(this.getId()));
+          }
+        }
+
       }
     }
     //here I cannot receive other deliveries if I'm the master because I will not answer the delivery call and a Timeout will be triggered
@@ -192,6 +198,13 @@ public class Drone {
     System.out.println("\033[0;35m"+"BYE BYE"+"\033[0m");
     System.exit(0);
 
+  }
+
+  private DroneInfo getDroneInfo(int id) {
+    for (DroneInfo di : getDronesCopy()){
+      if(id==di.getId()) return di;
+    }
+    return null;
   }
 
   public synchronized int getDeliveries() {
