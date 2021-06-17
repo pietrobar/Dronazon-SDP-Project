@@ -216,7 +216,7 @@ public class DroneGRPCCommunication implements Runnable{
         /*Receiving the order to deliver*/
         @Override
         public void delivery(DroneRPC.OrderRequest request, StreamObserver<DroneRPC.OrderResponse> responseObserver) {
-          if(!drone.isQuitting()){
+          if(!drone.isQuitting()){//if I'm quitting and I'm the master I can't make any delivery
             drone.setDelivering(true);
             drone.setBatteryCharge(drone.getBatteryCharge()-10);//at begin of method helps the election
             try {

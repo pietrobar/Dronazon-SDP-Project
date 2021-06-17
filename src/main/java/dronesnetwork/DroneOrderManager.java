@@ -74,8 +74,7 @@ public class DroneOrderManager implements Runnable{
           Order order = gson.fromJson(receivedMessage, Order.class);
           addOrder(order);//useful to keep track of how many orders needs to be delivered
 
-          Runnable r = () -> drone.getDroneGRPCManager().assignOrder(order);
-          Thread t = new Thread(r);
+          Thread t = new Thread(() -> drone.getDroneGRPCManager().assignOrder(order));
           t.start();//these threads try to assign orders to free drones, are the same count as the orders
         }
 

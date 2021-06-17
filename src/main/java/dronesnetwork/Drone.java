@@ -140,15 +140,18 @@ public class Drone {
   public void leaveNetwork() {
     setQuit(true);
     synchronized (terminationObj){
-      if(this.isDelivering()){//If O'm delivering I have to wait
+      while(this.isDelivering()){//If O'm delivering I have to wait
         try {
           terminationObj.wait();//waking up from this wait I will be sure that my delivery is completed
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
+        if(this.getMasterId()!=this.getId())//if I'm not the master I can already close my server -> I'll never receive other communications
+          droneGRPCManager.serverShutdown();
       }
     }
-
+    //here I cannot receive other deliveries if I'm the master because I will not answer the delivery call and a Timeout will be triggered
+    //Neither I can receive deliveries if I'm a normal drone because I shut down the server
     if(this.getId()==this.getMasterId()){//if I'm the master
       //1 - my delivery is done
       //2 - disconnect from MQTT broker
@@ -180,7 +183,7 @@ public class Drone {
       //I'm NOT the master
       //1 - my delivery is done
       //2 - close the communications with other drones
-      droneGRPCManager.serverShutdown();
+      //server already shut down
       //3 - Ask server admin to exit the system
       statPrinter.shutdown();
       printStatistics();
@@ -352,7 +355,7 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    int param = 10;
+    int param = 1;
     Drone d = new Drone(param,990+param);
     d.startDrone();
   }
