@@ -421,25 +421,67 @@ public class DroneGRPCCommunication implements Runnable{
     }
   }
 
-  /*Called by a thread create by DroneOrderManager's callback to assign a delivery to a free drone*/
-  public void assignOrder(Order order){
+//  /*Called by a thread create by DroneOrderManager's callback to assign a delivery to a free drone*/
+//  public void assignOrder(Order order){
+//    DroneOrderManager dom = drone.getDroneOrderManager();
+//    DroneInfo bestDrone=null;
+//    synchronized (dom.freeDronesSyncer){
+//      while(findBestDrone(order)==null){//all drones are occupied
+//        try {
+//          dom.freeDronesSyncer.wait();//all thread blocked are count as the number of order to assign
+//        } catch (InterruptedException e) {
+//          e.printStackTrace();
+//        }
+//      }
+//      //here I'm sure there is at least one free drone
+//      bestDrone =  findBestDrone(order);//this could be null BUT while assure it cannot be null
+//      dom.addOccupiedDrone(bestDrone);
+//
+//      //call GRPC to that drone
+//      final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+bestDrone.getPort()).usePlaintext().build();
+//      DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+//
+//      DroneRPC.OrderRequest request = DroneRPC.OrderRequest.newBuilder()
+//              .setOrderId(order.getId())
+//              .setPickUpPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getPickUpPoint().getX()).setYCoord(order.getPickUpPoint().getY()))
+//              .setDeliveryPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getDeliveryPoint().getX()).setYCoord(order.getDeliveryPoint().getY()))
+//              .build();
+//
+//      DroneRPC.OrderResponse response = stub.delivery(request);//the answer will contains the statistics after the delivery. This call should take ~ 5 seconds
+//      //N.B. Per semplicita', si assume che un drone porta sempre a termine con successo la consegna a lui assegnata => This call cannot fail in this scenario
+//      //COLLECT STATS
+//      DroneStatsCollector dsc = drone.getDroneStatsCollector();
+//      dsc.addDelivery(bestDrone.getId());
+//      dsc.addKilometerMean(response.getKilometers());
+//      dsc.addBattery(response.getBattery());
+//      dsc.addPollutionValues(response.getPollutionValuesList());//all sync in dsc
+//
+//
+//      //DRONE LIST UPDATE
+//      bestDrone.setPosition(new Coordinate(response.getCurrentPos().getXCoord(),response.getCurrentPos().getYCoord()));
+//      bestDrone.setBattery(response.getBattery());
+//      drone.updatePosAndBattery(bestDrone);
+//
+//      channel.shutdown();
+//      //once the order is done I want to remove it from the list
+//      dom.removeOrder(order);
+//      dom.removeOccupiedDrone(bestDrone);
+//
+//      //freed one drone I can notify his freedom
+//      dom.freeDronesSyncer.notifyAll();
+//    }
+//
+//  }
+
+  public void tryAssignOrder(Order order) {
     DroneOrderManager dom = drone.getDroneOrderManager();
-    DroneInfo bestDrone=null;
-    synchronized (dom.freeDronesSyncer){
-      while(findBestDrone(order)==null){//all drones are occupied
-        try {
-          dom.freeDronesSyncer.wait();//all thread blocked are count as the number of order to assign
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
-      //here I'm sure there is at least one free drone
-      bestDrone =  findBestDrone(order);//this could be null BUT while assure it cannot be null
+    DroneInfo bestDrone = findBestDrone(order);
+    if (bestDrone!=null){
       dom.addOccupiedDrone(bestDrone);
 
       //call GRPC to that drone
-      final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+bestDrone.getPort()).usePlaintext().build();
-      DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
+      final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:" + bestDrone.getPort()).usePlaintext().build();
+      DroneServiceGrpc.DroneServiceStub stub = DroneServiceGrpc.newStub(channel);
 
       DroneRPC.OrderRequest request = DroneRPC.OrderRequest.newBuilder()
               .setOrderId(order.getId())
@@ -447,29 +489,54 @@ public class DroneGRPCCommunication implements Runnable{
               .setDeliveryPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getDeliveryPoint().getX()).setYCoord(order.getDeliveryPoint().getY()))
               .build();
 
-      DroneRPC.OrderResponse response = stub.delivery(request);//the answer will contains the statistics after the delivery. This call should take ~ 5 seconds
-      //N.B. Per semplicita', si assume che un drone porta sempre a termine con successo la consegna a lui assegnata => This call cannot fail in this scenario
-      //COLLECT STATS
-      DroneStatsCollector dsc = drone.getDroneStatsCollector();
-      dsc.addDelivery(bestDrone.getId());
-      dsc.addKilometerMean(response.getKilometers());
-      dsc.addBattery(response.getBattery());
-      dsc.addPollutionValues(response.getPollutionValuesList());//all sync in dsc
+      stub.delivery(request, new StreamObserver<DroneRPC.OrderResponse>() {
+        @Override
+        public void onNext(DroneRPC.OrderResponse response) {
+          //COLLECT STATS
+          DroneStatsCollector dsc = drone.getDroneStatsCollector();
+          dsc.addDelivery(bestDrone.getId());
+          dsc.addKilometerMean(response.getKilometers());
+          dsc.addBattery(response.getBattery());
+          dsc.addPollutionValues(response.getPollutionValuesList());//all sync in dsc
 
 
-      //DRONE LIST UPDATE
-      bestDrone.setPosition(new Coordinate(response.getCurrentPos().getXCoord(),response.getCurrentPos().getYCoord()));
-      bestDrone.setBattery(response.getBattery());
-      drone.updatePosAndBattery(bestDrone);
+          //DRONE LIST UPDATE
+          bestDrone.setPosition(new Coordinate(response.getCurrentPos().getXCoord(), response.getCurrentPos().getYCoord()));
+          bestDrone.setBattery(response.getBattery());
+          drone.updatePosAndBattery(bestDrone);
 
-      channel.shutdown();
-      //once the order is done I want to remove it from the list
-      dom.removeOrder(order);
-      dom.removeOccupiedDrone(bestDrone);
 
-      //freed one drone I can notify his freedom
-      dom.freeDronesSyncer.notifyAll();
+          dom.removeOccupiedDrone(bestDrone);
+          //freed one drone I can notify his freedom
+          synchronized (dom.freeDronesSyncer){
+            dom.freeDronesSyncer.notifyAll();
+          }
+        }
+
+        @Override
+        public void onError(Throwable t) {
+          //N.B. Per semplicita', si assume che un drone porta sempre a termine con successo la consegna a lui assegnata => This call cannot fail in this scenario
+        }
+
+        @Override
+        public void onCompleted() {
+          channel.shutdownNow();
+          synchronized (dom.orders){
+            dom.orders.notify();
+          }
+          try {
+            channel.awaitTermination(5,TimeUnit.SECONDS);
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      });
+
+    }else{
+      dom.addOrder(order);//if no drone is available i will add this order back in the list
     }
+
+
 
   }
 

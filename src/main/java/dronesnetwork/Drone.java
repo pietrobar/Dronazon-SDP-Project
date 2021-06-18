@@ -172,6 +172,7 @@ public class Drone {
           }
         }
       }
+      droneOrderManager.stopOrderAssigner();
       //4 - close the communications with other drones
       droneGRPCManager.serverShutdown();
       //5 - send statistics to server administrator
@@ -304,9 +305,6 @@ public class Drone {
     return droneStatsCollector;
   }
 
-  public void setDroneStatsCollector(DroneStatsCollector droneStatsCollector) {
-    this.droneStatsCollector = droneStatsCollector;
-  }
 
   public synchronized boolean isDelivering() {
     return delivering;
@@ -361,9 +359,9 @@ public class Drone {
             "position=" + position +",\n"+
             "NETWORK= " + getDronesCopy() + "\n"+
             "Statistics: {"+ "\n"+
-            "\tdeliveries=" + deliveries +",\n"+
-            "\tkilometers=" + kilometers +",\n"+
-            "\tbatteryCharge=" + batteryCharge +",\n\t}\n"+
+            "\tdeliveries=" + getDeliveries() +",\n"+
+            "\tkilometers=" + getKilometers() +",\n"+
+            "\tbatteryCharge=" + getBatteryCharge() +",\n\t}\n"+
             '}'+"\u001B[0m";
   }
 

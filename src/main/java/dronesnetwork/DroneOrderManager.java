@@ -7,7 +7,9 @@ import restserver.beans.DroneInfo;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -20,10 +22,12 @@ public class DroneOrderManager implements Runnable{
   String topic = "dronazon/smartcity/orders/";
   int qos = 2;
 
-  private final List<Order> orders;
+  protected final List<Order> orders;
   private final List<DroneInfo> occupiedDrones;
   Drone drone;
   public final Object freeDronesSyncer;//used by threads create to assign order to sync on before occupying a drone
+  private final Thread orderAssigner;
+  protected ScheduledExecutorService ordersTerminator;
 
 
   public DroneOrderManager(Drone drone){
@@ -31,26 +35,47 @@ public class DroneOrderManager implements Runnable{
     this.occupiedDrones = new ArrayList<>();
     this.drone = drone;
     freeDronesSyncer = new Object();
+
+    //Thread for assigning orders
+    orderAssigner = new Thread(()->{
+      synchronized (orders){
+        while(true){
+          try {
+            orders.wait();
+          } catch (InterruptedException e) {
+            System.out.println("Order assigner interrupted");
+            break;
+          }
+          if(getOrders().size()>0)
+            drone.getDroneGRPCManager().tryAssignOrder(orders.remove(0));
+        }
+      }
+    });
+    orderAssigner.start();
   }
 
-  private synchronized void addOrder(Order order){
-    this.orders.add(order);
+  public void addOrder(Order order){
+    synchronized (orders){
+      this.orders.add(order);
+      orders.notify();
+    }
   }
 
-  public synchronized void removeOrder(Order order){ this.orders.remove(order); }
-
-  public void addOccupiedDrone(DroneInfo droneInfo){
+  public synchronized void addOccupiedDrone(DroneInfo droneInfo){
     this.occupiedDrones.add(droneInfo);
   }
 
-  public void removeOccupiedDrone(DroneInfo droneInfo){
+  public synchronized void removeOccupiedDrone(DroneInfo droneInfo){
     this.occupiedDrones.remove(droneInfo);
   }
 
-  public List<DroneInfo> getOccupiedDrones(){
+  public synchronized List<DroneInfo> getOccupiedDrones(){
     return occupiedDrones;
   }
 
+  public void stopOrderAssigner(){
+    this.orderAssigner.interrupt();
+  }
   @Override
   public void run() {
     System.out.println("Started Order Receiver");
@@ -74,8 +99,8 @@ public class DroneOrderManager implements Runnable{
           Order order = gson.fromJson(receivedMessage, Order.class);
           addOrder(order);//useful to keep track of how many orders needs to be delivered
 
-          Thread t = new Thread(() -> drone.getDroneGRPCManager().assignOrder(order));
-          t.start();//these threads try to assign orders to free drones, are the same count as the orders
+//          Thread t = new Thread(() -> drone.getDroneGRPCManager().assignOrder(order));
+//          t.start();//these threads try to assign orders to free drones, are the same count as the orders
         }
 
         public void connectionLost(Throwable cause) {
@@ -96,6 +121,12 @@ public class DroneOrderManager implements Runnable{
         }
         client.disconnect();
       }
+      ordersTerminator = Executors.newSingleThreadScheduledExecutor();
+      ordersTerminator.scheduleAtFixedRate(()->{
+        synchronized (orders){
+          orders.notify();
+        }
+      }, 0, 5, TimeUnit.SECONDS);
 
     } catch (MqttException me ) {
       System.out.println("reason " + me.getReasonCode());
@@ -109,7 +140,9 @@ public class DroneOrderManager implements Runnable{
     }
   }
 
-  public synchronized List<Order> getOrders() {
-    return new ArrayList<>(orders);
+  public List<Order> getOrders() {
+    synchronized (orders){
+      return new ArrayList<>(orders);
+    }
   }
 }

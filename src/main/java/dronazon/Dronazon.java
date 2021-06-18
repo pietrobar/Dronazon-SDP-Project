@@ -21,10 +21,6 @@ public class Dronazon {
       client = new MqttClient(broker, clientId);
       MqttConnectOptions connOpts = new MqttConnectOptions();
       connOpts.setCleanSession(true);
-      //connOpts.setUserName(username); // optional
-      //connOpts.setPassword(password.toCharArray()); // optional
-      //connOpts.setWill("this/is/a/topic","will message".getBytes(),1,false);  // optional
-      //connOpts.setKeepAliveInterval(60);  // optional
 
       // Connect the client
       System.out.println(clientId + " Connecting Broker " + broker);
@@ -32,7 +28,7 @@ public class Dronazon {
       System.out.println(clientId + " Connected");
 
       while(client.isConnected()){
-        Thread.sleep(5000);//every 5 seconds a new order
+        Thread.sleep(4000);//every 5 seconds a new order
         Order order = generatesOrder();
         Gson gson = new Gson();
         String payload = gson.toJson(order);
