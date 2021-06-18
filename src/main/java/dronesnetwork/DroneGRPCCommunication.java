@@ -132,9 +132,10 @@ public class DroneGRPCCommunication implements Runnable{
       }catch (Exception e){
         //DEAD DRONE delete from my list
         drone.removeDroneFromList(successor);
-        channel.shutdown();
         drone.setInElection(false);
         startElection();//restart the election because this one failed!
+      }finally {
+        channel.shutdown();
       }
     }
 
@@ -171,8 +172,9 @@ public class DroneGRPCCommunication implements Runnable{
         //DEAD DRONE delete from my list
         drone.removeDroneFromList(di);
       }
+    }finally {
+      channel.shutdown();
     }
-    channel.shutdown();
     return ret;
   }
 
@@ -207,7 +209,6 @@ public class DroneGRPCCommunication implements Runnable{
         @Override
         public void delivery(DroneRPC.OrderRequest request, StreamObserver<DroneRPC.OrderResponse> responseObserver) {
           drone.setDelivering(true);
-          drone.setBatteryCharge(drone.getBatteryCharge()-10);//at begin of method helps the election
           try {
             Thread.sleep(5000);
           } catch (InterruptedException e) {
@@ -220,6 +221,7 @@ public class DroneGRPCCommunication implements Runnable{
           float d2 = distance(c1,c2);
 
           drone.setPosition(c2);
+          drone.setBatteryCharge(drone.getBatteryCharge()-10);//no election during delivery
           DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
           //take pollution values
@@ -503,6 +505,7 @@ public class DroneGRPCCommunication implements Runnable{
 
         @Override
         public void onError(Throwable t) {
+          channel.shutdownNow();
           //N.B. Per semplicita', si assume che un drone porta sempre a termine con successo la consegna a lui assegnata => This call cannot fail in this scenario
         }
 
