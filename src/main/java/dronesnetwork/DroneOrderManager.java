@@ -25,7 +25,7 @@ public class DroneOrderManager implements Runnable{
   protected final List<Order> orders;
   private final List<DroneInfo> occupiedDrones;
   Drone drone;
-  public final Object freeDronesSyncer;//used by threads create to assign order to sync on before occupying a drone
+
   private final Thread orderAssigner;
   protected ScheduledExecutorService ordersTerminator;
 
@@ -34,7 +34,6 @@ public class DroneOrderManager implements Runnable{
     orders = new ArrayList<>();
     this.occupiedDrones = new ArrayList<>();
     this.drone = drone;
-    freeDronesSyncer = new Object();
 
     //Thread for assigning orders
     orderAssigner = new Thread(()->{
@@ -47,7 +46,7 @@ public class DroneOrderManager implements Runnable{
             break;
           }
           if(getOrders().size()>0)
-            drone.getDroneGRPCManager().tryAssignOrder(orders.remove(0));
+            drone.getDroneGRPCManager().tryAssignOrder(orders.remove(0));//if this order is not delivered it will be re-added to the list
         }
       }
     });

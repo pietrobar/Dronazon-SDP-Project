@@ -146,9 +146,9 @@ public class Drone {
         if(!isMaster())//if I'm not the master I can already close my server -> I'll never receive other communications
           droneGRPCManager.serverShutdown();
         else{
-          synchronized (this.getDroneOrderManager().freeDronesSyncer){//add myself in list of occupied drones => can't receive any more deliveries
-            this.getDroneOrderManager().addOccupiedDrone(this.getDroneInfo(this.getId()));
-          }
+          //add myself in list of occupied drones => can't receive any more deliveries
+          this.getDroneOrderManager().addOccupiedDrone(this.getDroneInfo(this.getId()));
+
         }
 
       }
@@ -163,10 +163,10 @@ public class Drone {
         //I have to notify all because also threads that have to assign a order are synced on this object
       }
       //3 - wait for assign of left deliveries
-      synchronized (droneOrderManager.freeDronesSyncer){
+      synchronized (droneOrderManager.orders){
         while (droneOrderManager.getOrders().size()>0){//while there are still orders to deliver
           try {
-            droneOrderManager.freeDronesSyncer.wait();
+            droneOrderManager.orders.wait();
           } catch (InterruptedException e) {
             e.printStackTrace();
           }

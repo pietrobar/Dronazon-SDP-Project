@@ -28,7 +28,7 @@ public class Dronazon {
       System.out.println(clientId + " Connected");
 
       while(client.isConnected()){
-        Thread.sleep(4000);//every 5 seconds a new order
+        Thread.sleep(5000);//every 5 seconds a new order
         Order order = generatesOrder();
         Gson gson = new Gson();
         String payload = gson.toJson(order);

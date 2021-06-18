@@ -201,14 +201,6 @@ public class DroneGRPCCommunication implements Runnable{
           di.setBattery(100);//needed by master if a drone is new to assign a delivery
           di.setPosition(new Coordinate(request.getPosition().getXCoord(),request.getPosition().getYCoord()));
           drone.addDroneInfo(di);
-          //I have to notify there is a new drone here too if I'm the master
-          if(drone.getMasterId()==drone.getId() && drone.getDroneOrderManager()!=null){
-            synchronized (drone.getDroneOrderManager().freeDronesSyncer) {
-              drone.getDroneOrderManager().freeDronesSyncer.notifyAll();
-            }
-          }
-
-
         }
 
         /*Receiving the order to deliver*/
@@ -507,10 +499,6 @@ public class DroneGRPCCommunication implements Runnable{
 
 
           dom.removeOccupiedDrone(bestDrone);
-          //freed one drone I can notify his freedom
-          synchronized (dom.freeDronesSyncer){
-            dom.freeDronesSyncer.notifyAll();
-          }
         }
 
         @Override
