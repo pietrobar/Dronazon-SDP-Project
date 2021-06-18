@@ -73,8 +73,9 @@ public class DroneGRPCCommunication implements Runnable{
             }catch (Exception e){
               deadDrones.add(node);
               drone.removeDroneFromList(node);//Remove dead drone
+            }finally {
+              channel.shutdown();
             }
-            channel.shutdown();
           });
           threads.add(t);
 
@@ -98,9 +99,6 @@ public class DroneGRPCCommunication implements Runnable{
       if(drone.getDronesCopy().stream().noneMatch(d-> d.getId()==drone.getMasterId())){
         new Thread(this::startElection).start();
       }
-
-
-
 
     }
     synchronized (drone){

@@ -78,14 +78,11 @@ public class Drone {
       this.wait();//wait for DroneGRPCCommunication to tell me he has finished insertNetwork()
     }
 
-    if(!(this.id==this.getMasterId())){//if I'm a normal drone I'll start ping the master. This thread is stopped if i become the master
+    if(!isMaster()){//if I'm a normal drone I'll start ping the master. This thread is stopped if i become the master
       pingMaster = Executors.newSingleThreadScheduledExecutor();
       pingMaster.scheduleAtFixedRate(() -> {
         List<DroneInfo> master = this.getDronesCopy().stream().filter(d->d.getId()==this.getMasterId()).collect(Collectors.toList());
-        if(master.size()==1){
-          droneGRPCManager.isAlive(master.get(0));
-        }
-
+        droneGRPCManager.isAlive(master.get(0));//can be only of size 0
       }, 0, 5, TimeUnit.SECONDS);
     }
 
@@ -146,7 +143,7 @@ public class Drone {
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
-        if(this.getMasterId()!=this.getId())//if I'm not the master I can already close my server -> I'll never receive other communications
+        if(!isMaster())//if I'm not the master I can already close my server -> I'll never receive other communications
           droneGRPCManager.serverShutdown();
         else{
           synchronized (this.getDroneOrderManager().freeDronesSyncer){//add myself in list of occupied drones => can't receive any more deliveries
@@ -158,7 +155,7 @@ public class Drone {
     }
     //here I cannot receive other deliveries if I'm the master because I will not answer the delivery call and a Timeout will be triggered
     //Neither I can receive deliveries if I'm a normal drone because I shut down the server
-    if(this.getId()==this.getMasterId()){//if I'm the master
+    if(isMaster()){//if I'm the master
       //1 - my delivery is done
       //2 - disconnect from MQTT broker
       synchronized (droneOrderManager){
@@ -349,6 +346,10 @@ public class Drone {
     res.setBattery(this.getBatteryCharge());
     res.setPosition(this.getPosition());
     return res;
+  }
+
+  public boolean isMaster(){
+    return this.getMasterId()==this.getId();
   }
 
   @Override
