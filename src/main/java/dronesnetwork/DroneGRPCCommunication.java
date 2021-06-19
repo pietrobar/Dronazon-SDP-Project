@@ -236,7 +236,7 @@ public class DroneGRPCCommunication implements Runnable{
                   .setBattery(drone.getBatteryCharge())
                   .build();
 
-          System.out.println("CONSEGNA EFFETTUATA");
+          System.out.println("CONSEGNA EFFETTUATA " + request.getOrderId());
           responseObserver.onNext(response);
           responseObserver.onCompleted();
 
@@ -352,10 +352,14 @@ public class DroneGRPCCommunication implements Runnable{
           }catch (Exception e){
             //DEAD DRONE delete from my list
             drone.removeDroneFromList(successor);
-            channel.shutdown();
+            channel.shutdownNow();
             sendElected();//if it fails I have to repeat this method, this time it will be called on the new successor
           }
-          channel.shutdown();
+          finally {
+            if(!channel.isShutdown()){
+              channel.shutdownNow();
+            }
+          }
         }
         private void forwardElected(DroneRPC.Elected request){
           Context.current().fork();
@@ -369,7 +373,7 @@ public class DroneGRPCCommunication implements Runnable{
           }catch (Exception e){
             //DEAD DRONE delete from my list
             drone.removeDroneFromList(successor);
-            channel.shutdown();
+            channel.shutdownNow();
             //if it fails I'll send the message to the next one if is not the new master
             if(successor.getId()!=request.getId())
               forwardElected(request);
@@ -377,7 +381,11 @@ public class DroneGRPCCommunication implements Runnable{
               startElection();
 
           }
-          channel.shutdown();
+          finally {
+            if(!channel.isShutdown()){
+              channel.shutdownNow();
+            }
+          }
         }
 
         private void sendElection(DroneRPC.Election request) {
@@ -394,9 +402,17 @@ public class DroneGRPCCommunication implements Runnable{
             drone.removeDroneFromList(successor);
             //if it fails I'll send the message to the next one
             channel.shutdown();
-            sendElection(request);
+            //if it fails I'll send the message to the next one IF is not the new master
+            if(successor.getId()!=request.getId())
+              sendElection(request);
+            else//if the new master is dead if I don't start an election the message could go infinitely
+              startElection();
           }
-          channel.shutdown();
+          finally {
+            if(!channel.isShutdown()){
+              channel.shutdownNow();
+            }
+          }
         }
 
 

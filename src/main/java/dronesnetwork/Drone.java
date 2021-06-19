@@ -367,7 +367,9 @@ public class Drone {
 
 
   public static void main(String[] args) throws InterruptedException {
-    int param = 1;
+    System.out.println("Insert a ID");
+    Scanner scanner = new Scanner(System.in);
+    int param = scanner.nextInt();
     Drone d = new Drone(param,990+param);
     d.startDrone();
   }
