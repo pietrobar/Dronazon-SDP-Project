@@ -269,10 +269,11 @@ public class DroneGRPCCommunication implements Runnable{
           //Respond and extract message
           DroneRPC.EmptyResponse response = DroneRPC.EmptyResponse.newBuilder().build();
           responseObserver.onNext(response);
-          responseObserver.onCompleted();
+
           //END OF RING => I'm the master
           if(request.getId()==drone.getId()){
-            System.out.println("New Master");
+            responseObserver.onCompleted();
+            System.out.println("I'm the NEW MASTER");
             drone.setMasterId(drone.getId());
             //update list with all new positions and batteries
             List<DroneInfo> newList = new ArrayList<>();
@@ -299,6 +300,7 @@ public class DroneGRPCCommunication implements Runnable{
                     .build();
             DroneRPC.Elected newRequest = request.toBuilder().addUpdatePosition(update).build();
             forwardElected(newRequest);
+            responseObserver.onCompleted();//I want to be sure that the message is sent
           }
 
 
@@ -334,35 +336,14 @@ public class DroneGRPCCommunication implements Runnable{
             //I'm the master
             drone.setInElection(false);
 
-            sendElected();
+            DroneRPC.Elected requestWithIdOfNewMaster = DroneRPC.Elected.newBuilder().setId(drone.getId()).build();
+            forwardElected(requestWithIdOfNewMaster);
           }
 
 
         }
 
-        private void sendElected() {
-          DroneInfo successor = findAliveSuccessor(drone.toDroneInfo());
-          final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
-          DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
-          DroneRPC.Elected request = DroneRPC.Elected.newBuilder().setId(drone.getId()).build();
-          DroneRPC.EmptyResponse response=null;
-          try{
-            response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).elected(request);//receive an answer, could fail-> timeout
-            //response is empty
-          }catch (Exception e){
-            //DEAD DRONE delete from my list
-            drone.removeDroneFromList(successor);
-            channel.shutdownNow();
-            sendElected();//if it fails I have to repeat this method, this time it will be called on the new successor
-          }
-          finally {
-            if(!channel.isShutdown()){
-              channel.shutdownNow();
-            }
-          }
-        }
         private void forwardElected(DroneRPC.Elected request){
-          Context.current().fork();
           DroneInfo successor= findAliveSuccessor(drone.toDroneInfo());
           final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
           DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
@@ -431,57 +412,6 @@ public class DroneGRPCCommunication implements Runnable{
     }
   }
 
-//  /*Called by a thread create by DroneOrderManager's callback to assign a delivery to a free drone*/
-//  public void assignOrder(Order order){
-//    DroneOrderManager dom = drone.getDroneOrderManager();
-//    DroneInfo bestDrone=null;
-//    synchronized (dom.freeDronesSyncer){
-//      while(findBestDrone(order)==null){//all drones are occupied
-//        try {
-//          dom.freeDronesSyncer.wait();//all thread blocked are count as the number of order to assign
-//        } catch (InterruptedException e) {
-//          e.printStackTrace();
-//        }
-//      }
-//      //here I'm sure there is at least one free drone
-//      bestDrone =  findBestDrone(order);//this could be null BUT while assure it cannot be null
-//      dom.addOccupiedDrone(bestDrone);
-//
-//      //call GRPC to that drone
-//      final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+bestDrone.getPort()).usePlaintext().build();
-//      DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
-//
-//      DroneRPC.OrderRequest request = DroneRPC.OrderRequest.newBuilder()
-//              .setOrderId(order.getId())
-//              .setPickUpPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getPickUpPoint().getX()).setYCoord(order.getPickUpPoint().getY()))
-//              .setDeliveryPoint(DroneRPC.Coordinate.newBuilder().setXCoord(order.getDeliveryPoint().getX()).setYCoord(order.getDeliveryPoint().getY()))
-//              .build();
-//
-//      DroneRPC.OrderResponse response = stub.delivery(request);//the answer will contains the statistics after the delivery. This call should take ~ 5 seconds
-//      //N.B. Per semplicita', si assume che un drone porta sempre a termine con successo la consegna a lui assegnata => This call cannot fail in this scenario
-//      //COLLECT STATS
-//      DroneStatsCollector dsc = drone.getDroneStatsCollector();
-//      dsc.addDelivery(bestDrone.getId());
-//      dsc.addKilometerMean(response.getKilometers());
-//      dsc.addBattery(response.getBattery());
-//      dsc.addPollutionValues(response.getPollutionValuesList());//all sync in dsc
-//
-//
-//      //DRONE LIST UPDATE
-//      bestDrone.setPosition(new Coordinate(response.getCurrentPos().getXCoord(),response.getCurrentPos().getYCoord()));
-//      bestDrone.setBattery(response.getBattery());
-//      drone.updatePosAndBattery(bestDrone);
-//
-//      channel.shutdown();
-//      //once the order is done I want to remove it from the list
-//      dom.removeOrder(order);
-//      dom.removeOccupiedDrone(bestDrone);
-//
-//      //freed one drone I can notify his freedom
-//      dom.freeDronesSyncer.notifyAll();
-//    }
-//
-//  }
 
   public void tryAssignOrder(Order order) {
     DroneOrderManager dom = drone.getDroneOrderManager();
