@@ -45,7 +45,7 @@ public class DroneOrderManager implements Runnable{
             System.out.println("Order assigner interrupted");
             break;
           }
-          if(getOrders().size()>0)
+          if(orders.size()>0)
             drone.getDroneGRPCManager().tryAssignOrder(orders.remove(0));//if this order is not delivered it will be re-added to the list
         }
       }
