@@ -40,7 +40,9 @@ public class DroneOrderManager implements Runnable{
       synchronized (orders){
         while(true){
           try {
-            orders.wait();
+            if(orders.size()==0) {
+              orders.wait();
+            }
           } catch (InterruptedException e) {
             System.out.println("Order assigner interrupted");
             break;
