@@ -108,38 +108,43 @@ public class DroneGRPCCommunication implements Runnable{
 
   private void startElection() {
     System.out.println("ELECTION STARTED");
-    if(drone.getDronesCopy().size()==1){//if I'm the only one
-      drone.setMasterId(drone.getId());
-      drone.justBecomeMaster();
-    }else{
-      //If master is dead I have to start an election => Chang And Roberts
 
-      //1 - Find Successor
-      DroneInfo successor = findAliveSuccessor(drone.toDroneInfo());
+      if(drone.getDronesCopy().size()==1){//if I'm the only one
+        drone.setMasterId(drone.getId());
+        drone.justBecomeMaster();
+      }else{
+        //If master is dead I have to start an election => Chang And Roberts
 
-      //2 - Participating to the election
-      drone.setInElection(true);
+        //1 - Find Successor
+        DroneInfo successor = findAliveSuccessor(drone.toDroneInfo());
 
-      //3 - Send Election message
-      final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
-      DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
-      DroneRPC.Election request = DroneRPC.Election.newBuilder().setId(drone.getId()).setBattery(drone.getBatteryCharge()).build();
-      DroneRPC.EmptyResponse response=null;
-      try{
-        response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).election(request);//receive an answer, could fail-> timeout
-        channel.shutdown();
-        //response is empty
-      }catch (Exception e){
-        //DEAD DRONE delete from my list
-        drone.removeDroneFromList(successor);
-        drone.setInElection(false);
-        startElection();//restart the election because this one failed!
-      }finally {
-        channel.shutdown();
+        //2 - Participating to the election
+        drone.setInElection(true);
+
+        //3 - Send Election message
+        Context.current().fork().run(()->{
+          final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
+          DroneServiceGrpc.DroneServiceStub stub = DroneServiceGrpc.newStub(channel);
+          DroneRPC.Election request = DroneRPC.Election.newBuilder().setId(drone.getId()).setBattery(drone.getBatteryCharge()).build();
+          stub.withDeadlineAfter(5, TimeUnit.SECONDS).election(request, new StreamObserver<DroneRPC.EmptyResponse>() {
+            @Override
+            public void onNext(DroneRPC.EmptyResponse emptyResponse) {}
+
+            @Override
+            public void onError(Throwable throwable) {
+              //DEAD DRONE delete from my list
+              drone.removeDroneFromList(successor);
+              drone.setInElection(false);
+              startElection();//restart the election because this one failed!
+            }
+
+            @Override
+            public void onCompleted() {
+              channel.shutdownNow();
+            }
+          });
+        });
       }
-    }
-
-
 
   }
 
@@ -344,56 +349,73 @@ public class DroneGRPCCommunication implements Runnable{
         }
 
         private void forwardElected(DroneRPC.Elected request){
-          DroneInfo successor= findAliveSuccessor(drone.toDroneInfo());
-          final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
-          DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
-          DroneRPC.EmptyResponse response=null;
-          try{
-            response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).elected(request);//receive an answer, could fail-> timeout
-            //response is empty
-          }catch (Exception e){
-            //DEAD DRONE delete from my list
-            drone.removeDroneFromList(successor);
-            channel.shutdownNow();
-            //if it fails I'll send the message to the next one if is not the new master
-            if(successor.getId()!=request.getId())
-              forwardElected(request);
-            else//if the new master is dead if I don't start an election the message could go infinitely
-              startElection();
+          Context.current().fork().run(()-> {//if father terminates closes everything
+            DroneInfo successor = findAliveSuccessor(drone.toDroneInfo());
+            final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:" + successor.getPort()).usePlaintext().build();
+            DroneServiceGrpc.DroneServiceStub stub = DroneServiceGrpc.newStub(channel);
+            stub.withDeadlineAfter(5, TimeUnit.SECONDS).elected(request, new StreamObserver<DroneRPC.EmptyResponse>() {
+              @Override
+              public void onNext(DroneRPC.EmptyResponse emptyResponse) {
 
-          }
-          finally {
-            if(!channel.isShutdown()){
-              channel.shutdownNow();
-            }
-          }
+              }
+
+              @Override
+              public void onError(Throwable throwable) {
+                //DEAD DRONE delete from my list
+                drone.removeDroneFromList(successor);
+                channel.shutdownNow();
+                //if it fails I'll send the message to the next one if is not the new master
+                if (successor.getId() != request.getId())
+                  forwardElected(request);
+                else//if the new master is dead if I don't start an election the message could go infinitely
+                  startElection();
+
+              }
+
+              @Override
+              public void onCompleted() {
+                if (!channel.isShutdown()) {
+                  channel.shutdownNow();
+                }
+              }
+            });
+          });
         }
 
         private void sendElection(DroneRPC.Election request) {
-          Context.current().fork();
-          DroneInfo successor= findAliveSuccessor(drone.toDroneInfo());
-          final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
-          DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
-          DroneRPC.EmptyResponse response=null;
-          try{
-            response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).election(request);//receive an answer, could fail-> timeout
-            //response is empty
-          }catch (Exception e){
-            //DEAD DRONE delete from my list
-            drone.removeDroneFromList(successor);
-            //if it fails I'll send the message to the next one
-            channel.shutdown();
-            //if it fails I'll send the message to the next one IF is not the new master
-            if(successor.getId()!=request.getId())
-              sendElection(request);
-            else//if the new master is dead if I don't start an election the message could go infinitely
-              startElection();
-          }
-          finally {
-            if(!channel.isShutdown()){
-              channel.shutdownNow();
-            }
-          }
+          Context.current().fork().run(()->{
+            DroneInfo successor= findAliveSuccessor(drone.toDroneInfo());
+            final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
+            DroneServiceGrpc.DroneServiceStub stub = DroneServiceGrpc.newStub(channel);
+            DroneRPC.EmptyResponse response=null;
+            stub.withDeadlineAfter(5, TimeUnit.SECONDS).election(request, new StreamObserver<DroneRPC.EmptyResponse>() {
+              @Override
+              public void onNext(DroneRPC.EmptyResponse emptyResponse) {
+
+              }
+
+              @Override
+              public void onError(Throwable throwable) {
+                //DEAD DRONE delete from my list
+                drone.removeDroneFromList(successor);
+                channel.shutdown();
+                //if it fails I'll send the message to the next one IF is not the new master
+                if(successor.getId()!=request.getId())
+                  sendElection(request);
+                else//if the new master is dead if I don't start an election the message could go infinitely
+                  startElection();
+
+              }
+
+              @Override
+              public void onCompleted() {
+                if(!channel.isShutdown()){
+                  channel.shutdownNow();
+                }
+
+              }
+            });
+          });
         }
 
 
@@ -460,11 +482,6 @@ public class DroneGRPCCommunication implements Runnable{
           channel.shutdownNow();
           synchronized (dom.orders){
             dom.orders.notify();
-          }
-          try {
-            channel.awaitTermination(5,TimeUnit.SECONDS);
-          } catch (InterruptedException e) {
-            e.printStackTrace();
           }
         }
       });
