@@ -68,8 +68,8 @@ public class DroneGRPCCommunication implements Runnable{
             DroneRPC.AddDroneResponse response;
             try{
               response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).addDrone(request);//receive an answer, could fail-> timeout
-
-              drone.setMasterId(response.getMasterId());
+              if(drone.getMasterId()==-1)
+                drone.setMasterId(response.getMasterId());
             }catch (Exception e){
               deadDrones.add(node);
               drone.removeDroneFromList(node);//Remove dead drone
@@ -274,10 +274,16 @@ public class DroneGRPCCommunication implements Runnable{
           //Respond and extract message
           DroneRPC.EmptyResponse response = DroneRPC.EmptyResponse.newBuilder().build();
           responseObserver.onNext(response);
+          responseObserver.onCompleted();
 
+          //Master is dead; I kept it till now because I needed to ping it to start other election if new master dies here
+          for (DroneInfo di : drone.getDronesCopy()){
+            if (di.getId()==drone.getMasterId()){
+              drone.removeDroneFromList(di);//remove master from list
+            }
+          }
           //END OF RING => I'm the master
           if(request.getId()==drone.getId()){
-            responseObserver.onCompleted();
             System.out.println("I'm the NEW MASTER");
             drone.setMasterId(drone.getId());
             //update list with all new positions and batteries
@@ -305,7 +311,6 @@ public class DroneGRPCCommunication implements Runnable{
                     .build();
             DroneRPC.Elected newRequest = request.toBuilder().addUpdatePosition(update).build();
             forwardElected(newRequest);
-            responseObserver.onCompleted();//I want to be sure that the message is sent
           }
 
 
@@ -314,12 +319,6 @@ public class DroneGRPCCommunication implements Runnable{
 
         @Override
         public void election(DroneRPC.Election request, StreamObserver<DroneRPC.EmptyResponse> responseObserver) {
-          //If an election message arrives => Master is dead
-          for (DroneInfo di : drone.getDronesCopy()){
-            if (di.getId()==drone.getMasterId()){
-              drone.removeDroneFromList(di);//remove master from list
-            }
-          }
           System.out.println("ELECTION message received");
           //Respond and extract message
           DroneRPC.EmptyResponse response = DroneRPC.EmptyResponse.newBuilder().build();

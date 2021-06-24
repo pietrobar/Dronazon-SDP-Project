@@ -81,10 +81,11 @@ public class Drone {
     if(!isMaster()){//if I'm a normal drone I'll start ping the master. This thread is stopped if i become the master
       pingMaster = Executors.newSingleThreadScheduledExecutor();
       pingMaster.scheduleAtFixedRate(() -> {
-        if (!isInElection()){
-          List<DroneInfo> master = this.getDronesCopy().stream().filter(d->d.getId()==this.getMasterId()).collect(Collectors.toList());
+        //Ping even during the election to manage limit case
+        List<DroneInfo> master = this.getDronesCopy().stream().filter(d->d.getId()==this.getMasterId()).collect(Collectors.toList());
+        if (master.size()==1 && master.get(0)!=null)
           droneGRPCManager.isAlive(master.get(0));//can be only of size 0
-        }
+
       }, 0, 5, TimeUnit.SECONDS);
     }
 
