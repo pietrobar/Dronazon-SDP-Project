@@ -116,7 +116,7 @@ public class DroneGRPCCommunication implements Runnable{
         //If master is dead I have to start an election => Chang And Roberts
 
         //1 - Find Successor
-        DroneInfo successor = findAliveSuccessor(drone.toDroneInfo());
+        DroneInfo successor = drone.successor(drone);
 
         //2 - Participating to the election
         drone.setInElection(true);
@@ -148,18 +148,10 @@ public class DroneGRPCCommunication implements Runnable{
 
   }
 
-  private DroneInfo findAliveSuccessor(DroneInfo d){
-    DroneInfo wannabeSuccessor = drone.successor(drone);
-    if(isAlive(wannabeSuccessor)){
-      return wannabeSuccessor;
-    }
-    return findAliveSuccessor(wannabeSuccessor);
-  }
-
-  protected boolean isAlive(DroneInfo di) {
+  protected void isAlive(DroneInfo di) {
     System.out.println("PING "+di);
     //ping a drone
-    boolean ret=false;
+
 
     final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+di.getPort()).usePlaintext().build();
     DroneServiceGrpc.DroneServiceBlockingStub stub = DroneServiceGrpc.newBlockingStub(channel);
@@ -168,7 +160,7 @@ public class DroneGRPCCommunication implements Runnable{
 
     try{
       response = stub.withDeadlineAfter(5, TimeUnit.SECONDS).ping(request);//receive an answer, could fail-> timeout
-      ret = true;
+
     }catch (Exception e){
       if(di.getId()== drone.getMasterId()){
         drone.removeDroneFromList(di);//remove master
@@ -180,7 +172,7 @@ public class DroneGRPCCommunication implements Runnable{
     }finally {
       channel.shutdown();
     }
-    return ret;
+
   }
 
 
@@ -355,7 +347,7 @@ public class DroneGRPCCommunication implements Runnable{
 
         private void forwardElected(DroneRPC.Elected request){
           Context.current().fork().run(()-> {//if father terminates closes everything
-            DroneInfo successor = findAliveSuccessor(drone.toDroneInfo());
+            DroneInfo successor = drone.successor(drone);
             final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:" + successor.getPort()).usePlaintext().build();
             DroneServiceGrpc.DroneServiceStub stub = DroneServiceGrpc.newStub(channel);
             stub.withDeadlineAfter(5, TimeUnit.SECONDS).elected(request, new StreamObserver<DroneRPC.EmptyResponse>() {
@@ -389,7 +381,7 @@ public class DroneGRPCCommunication implements Runnable{
 
         private void sendElection(DroneRPC.Election request) {
           Context.current().fork().run(()->{
-            DroneInfo successor= findAliveSuccessor(drone.toDroneInfo());
+            DroneInfo successor= drone.successor(drone);
             final ManagedChannel channel = ManagedChannelBuilder.forTarget("localhost:"+successor.getPort()).usePlaintext().build();
             DroneServiceGrpc.DroneServiceStub stub = DroneServiceGrpc.newStub(channel);
             DroneRPC.EmptyResponse response=null;
