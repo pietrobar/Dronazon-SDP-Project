@@ -455,7 +455,7 @@ public class DroneGRPCCommunication implements Runnable{
           DroneStatsCollector dsc = drone.getDroneStatsCollector();
           dsc.addDelivery(bestDrone.getId());
           dsc.addKilometerMean(response.getKilometers());
-          dsc.addBattery(response.getBattery());
+          dsc.addBattery(bestDrone.getId(),response.getBattery());
           dsc.addPollutionValues(response.getPollutionValuesList());//all sync in dsc
 
 

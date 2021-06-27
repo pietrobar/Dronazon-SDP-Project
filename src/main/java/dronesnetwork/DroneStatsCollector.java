@@ -13,7 +13,7 @@ public class DroneStatsCollector {
   private final Map<Integer,Float> deliveries;//map ID -> number of deliveries
   private final List<Float> kilometers;
   private final List<Float> pollution;
-  private final List<Float> battery;
+  private final Map<Integer,Float> battery;
 
   private final Drone drone;
 
@@ -21,7 +21,7 @@ public class DroneStatsCollector {
     this.deliveries = new Hashtable<>();
     this.kilometers = new ArrayList<>();
     this.pollution = new ArrayList<>();
-    this.battery = new ArrayList<>();
+    this.battery = new Hashtable<>();
 
     this.drone = drone;
 
@@ -42,7 +42,8 @@ public class DroneStatsCollector {
     float meanPollution = mean(pollution);
 
     //MEAN BATTERY
-    float meanBattery = mean(battery);
+    List<Float> bs = new ArrayList<>(battery.values());
+    float meanBattery = mean(bs);
 
     if(meanKm!=0 && meanPollution!=0 && meanBattery!=0 &&meanDeliveries!=0){
       Statistic statistic = new Statistic(LocalDateTime.now().format(formatter), meanDeliveries, meanKm ,meanPollution,meanBattery);
@@ -59,14 +60,16 @@ public class DroneStatsCollector {
   }
 
   private float mean(List<Float> values){
+    int size=0;
     synchronized (this){
+      size=values.size();
       if (values.size()==0) return 0;
     }
     float partial=0;
     for (float n : values){
       partial+=n;
     }
-    return partial/values.size();
+    return partial/size;
   }
 
 
@@ -78,15 +81,16 @@ public class DroneStatsCollector {
     pollution.addAll(pollutionValuesList);
   }
 
-  public synchronized void addBattery(float b) {
-    battery.add(b);
+  public synchronized void addBattery(int id, float b) {//I want to save last battery
+    battery.put(id,b);
   }
 
 
   public synchronized void addDelivery(int id) {
     if (deliveries.containsKey(id)){
       deliveries.put(id,deliveries.get(id)+1f);
+    }else{
+      deliveries.put(id,1f);
     }
-    deliveries.put(id,1f);
   }
 }
