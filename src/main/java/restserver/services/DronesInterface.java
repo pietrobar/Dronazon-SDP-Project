@@ -22,7 +22,7 @@ public class DronesInterface {
   @Produces({"application/json", "application/xml"})
   public Response addDrone(DroneInfo drone) {
     List<DroneInfo> res = DronesInfoManager.getInstance().add(drone);
-    return res!=null ? Response.ok(res).build() : Response.notModified().build();
+    return res!=null ? Response.ok(res).build() : Response.status(409).build();
   }
 
   @DELETE

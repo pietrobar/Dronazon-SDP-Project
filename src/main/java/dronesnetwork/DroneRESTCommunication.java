@@ -61,7 +61,7 @@ public class DroneRESTCommunication{
     ClientResponse response = webResource.type("application/json")
               .post(ClientResponse.class, droneInfoJson);
 
-    if(response.getStatus()==200){//   NotModified (301) if id already present
+    if(response.getStatus()==200){//   Collision (409) if id already present
       List<DroneInfo> res = response.getEntity(new GenericType<List<DroneInfo>>(){});
       for (DroneInfo di : res){
         if(di.getId()==drone.getId()) drone.setPosition(di.getPosition());//get the position set from the server
