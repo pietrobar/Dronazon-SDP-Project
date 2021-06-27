@@ -208,6 +208,12 @@ public class DroneGRPCCommunication implements Runnable{
           di.setBattery(100);//needed by master if a drone is new to assign a delivery
           di.setPosition(new Coordinate(request.getPosition().getXCoord(),request.getPosition().getYCoord()));
           drone.addDroneInfo(di);
+
+          if(drone.isMaster()){//if I'm the master I have to tell the Thread that manages the orders that a new drone is available
+            synchronized (drone.getDroneOrderManager().orders){
+              drone.getDroneOrderManager().orders.notify();
+            }
+          }
         }
 
         /*Receiving the order to deliver*/
@@ -473,6 +479,7 @@ public class DroneGRPCCommunication implements Runnable{
         @Override
         public void onError(Throwable t) {
           channel.shutdownNow();
+          dom.removeOccupiedDrone(bestDrone);
           //N.B. Per semplicita', si assume che un drone porta sempre a termine con successo la consegna a lui assegnata => This call cannot fail in this scenario
         }
 

@@ -7,9 +7,6 @@ import restserver.beans.DroneInfo;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -27,7 +24,6 @@ public class DroneOrderManager implements Runnable{
   Drone drone;
 
   private final Thread orderAssigner;
-  protected ScheduledExecutorService ordersTerminator;
 
 
   public DroneOrderManager(Drone drone){
@@ -40,7 +36,7 @@ public class DroneOrderManager implements Runnable{
       synchronized (orders){
         while(true){
           try {
-            if(orders.size()==0) {
+            if(orders.size()==0 || drone.getDronesCopy().size()==getOccupiedDrones().size()) {//if no drone is available I wait
               orders.wait();
             }
           } catch (InterruptedException e) {
@@ -122,12 +118,7 @@ public class DroneOrderManager implements Runnable{
         }
         client.disconnect();
       }
-      ordersTerminator = Executors.newSingleThreadScheduledExecutor();
-      ordersTerminator.scheduleAtFixedRate(()->{
-        synchronized (orders){
-          orders.notify();
-        }
-      }, 0, 5, TimeUnit.SECONDS);
+
 
     } catch (MqttException me ) {
       System.out.println("reason " + me.getReasonCode());
