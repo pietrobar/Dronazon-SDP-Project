@@ -270,7 +270,7 @@ public class DroneGRPCCommunication implements Runnable{
 
         @Override
         public void elected(DroneRPC.Elected request, StreamObserver<DroneRPC.EmptyResponse> responseObserver) {
-          System.out.println("ELECTED");
+          System.out.println("ELECTED message: <ID: "+request.getId()+">");
           //Respond and extract message
           DroneRPC.EmptyResponse response = DroneRPC.EmptyResponse.newBuilder().build();
           responseObserver.onNext(response);
@@ -278,7 +278,7 @@ public class DroneGRPCCommunication implements Runnable{
 
           //Master is dead; I kept it till now because I needed to ping it to start other election if new master dies here
           for (DroneInfo di : drone.getDronesCopy()){
-            if (di.getId()==drone.getMasterId()){
+            if (di.getId()==drone.getMasterId() && drone.getMasterId()!=request.getId()){//Don't remove new Master!!
               drone.removeDroneFromList(di);//remove master from list
             }
           }
@@ -319,7 +319,7 @@ public class DroneGRPCCommunication implements Runnable{
 
         @Override
         public void election(DroneRPC.Election request, StreamObserver<DroneRPC.EmptyResponse> responseObserver) {
-          System.out.println("ELECTION message received");
+          System.out.println("ELECTION message received: <ID: "+request.getId()+", Battery: "+request.getBattery()+">");
           //Respond and extract message
           DroneRPC.EmptyResponse response = DroneRPC.EmptyResponse.newBuilder().build();
           responseObserver.onNext(response);
