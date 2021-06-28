@@ -42,9 +42,9 @@ public class ClientAdministrator {
         String action = scanner.nextLine();
         switch (action){
           case "1": getDrones(client); break;
-          case "2": getStats(client, 3); break;
-          case "3": getDeliveriesBetweenTimestamps(client, scanner); break;
-          case "4": getKMBetweenTimestamps(client, scanner); break;
+          case "2": getStats(client); break;
+          case "3": getDeliveriesBetweenTimestamps(client); break;
+          case "4": getKMBetweenTimestamps(client); break;
           default:
             System.err.println("ERR: "+action+" is not a valid input");
         }
@@ -61,7 +61,7 @@ public class ClientAdministrator {
 
   }
 
-  private static void getKMBetweenTimestamps(Client client, Scanner in) {
+  private static void getKMBetweenTimestamps(Client client) {
     Scanner scanner = new Scanner(System.in);
     String t1;
     String t2;
@@ -87,7 +87,7 @@ public class ClientAdministrator {
     System.out.println(output);
   }
 
-  private static void getDeliveriesBetweenTimestamps(Client client, Scanner in) {
+  private static void getDeliveriesBetweenTimestamps(Client client) {
     Scanner scanner = new Scanner(System.in);
     String t1;
     String t2;
@@ -138,7 +138,7 @@ public class ClientAdministrator {
     }
   }
 
-  private static void getStats(Client client, int n) {
+  private static void getStats(Client client) {
     Scanner scanner = new Scanner(System.in);
 
     String input;
