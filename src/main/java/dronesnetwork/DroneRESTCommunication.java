@@ -47,7 +47,7 @@ public class DroneRESTCommunication{
   /*
   * register a drone to the administrator server
   * */
-  public static boolean registerDrone(Drone drone) {
+  public static void registerDrone(Drone drone) {
     ClientConfig clientConfig = new DefaultClientConfig();
     clientConfig.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
     clientConfig.getClasses().add(JacksonJsonProvider.class);
@@ -68,12 +68,11 @@ public class DroneRESTCommunication{
       }
       drone.setDrones(res);
       System.out.println("DRONI RICEVUTI DAL SERVER"+res);
-
-    }else{
-      return false;
+    }else if(response.getStatus()==409){
+      System.err.println("ERRORE: collisione ID");
+      System.exit(0);
     }
     System.out.println("Registered to the server administrator");
-    return true;
   }
 
 

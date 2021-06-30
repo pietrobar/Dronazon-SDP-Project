@@ -65,14 +65,8 @@ public class Drone {
   public void startDrone() throws InterruptedException {
     //Registration to the Server administrator
     //can be synchronous, until the registration the drone can't do anything
-    try{
-      while(!DroneRESTCommunication.registerDrone(this)){
-        System.out.println("contacting server");
-      }
-    }catch (Exception e){
-      System.err.println("There was an error contacting the server: be sure server is alive");
-      System.exit(0);
-    }
+
+    DroneRESTCommunication.registerDrone(this);
 
 
     //Insert in the network and start reception for GRPC communications
