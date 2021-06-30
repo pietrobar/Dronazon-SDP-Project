@@ -153,7 +153,7 @@ public class Drone {
           e.printStackTrace();
         }
         if(!isMaster())//if I'm not the master I can already close my server -> I'll never receive other communications
-          droneGRPCManager.serverShutdown();//shutdown allows the started communications to finish! -> master has to wait for assigned deliveries
+          droneGRPCManager.serverShutdown();
         else{
           //add myself in list of occupied drones => can't receive any more deliveries
           this.getDroneOrderManager().addOccupiedDrone(this.getDroneInfo(this.getId()));
