@@ -65,9 +65,15 @@ public class Drone {
   public void startDrone() throws InterruptedException {
     //Registration to the Server administrator
     //can be synchronous, until the registration the drone can't do anything
-    while(!DroneRESTCommunication.registerDrone(this)){
-      System.out.println("contacting server");
+    try{
+      while(!DroneRESTCommunication.registerDrone(this)){
+        System.out.println("contacting server");
+      }
+    }catch (Exception e){
+      System.err.println("There was an error contacting the server: be sure server is alive");
+      System.exit(0);
     }
+
 
     //Insert in the network and start reception for GRPC communications
     droneGRPCManager = new DroneGRPCCommunication(this);
@@ -110,7 +116,7 @@ public class Drone {
     waitForQuit.start();
 
     synchronized (terminationObj){
-      terminationObj.wait();//droneGRPCCommunication will tell me when it's time
+      terminationObj.wait();//droneGRPCCommunication or the manual quit will tell me when it's time
     }
     leaveNetwork();
 
@@ -147,7 +153,7 @@ public class Drone {
           e.printStackTrace();
         }
         if(!isMaster())//if I'm not the master I can already close my server -> I'll never receive other communications
-          droneGRPCManager.serverShutdown();
+          droneGRPCManager.serverShutdown();//shutdown allows the started communications to finish! -> master has to wait for assigned deliveries
         else{
           //add myself in list of occupied drones => can't receive any more deliveries
           this.getDroneOrderManager().addOccupiedDrone(this.getDroneInfo(this.getId()));
