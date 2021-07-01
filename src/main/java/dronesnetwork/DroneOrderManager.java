@@ -89,15 +89,11 @@ public class DroneOrderManager implements Runnable{
         /*each time a new order arrives a new thread is created that will manage the assignment of the order*/
         public void messageArrived(String topic, MqttMessage message) {
           String receivedMessage = new String(message.getPayload());
-          System.out.println("Received a Order! - Thread"+Thread.currentThread().getId() + receivedMessage);
-          //{"id":"79045252-c2c5-4edb-aa3e-4b841f1fcab7","pickUpPoint":{"x":8,"y":0},"deliveryPoint":{"x":6,"y":5}}
           //I have to save my order
           Gson gson = new Gson();
           Order order = gson.fromJson(receivedMessage, Order.class);
           addOrder(order);//useful to keep track of how many orders needs to be delivered
 
-//          Thread t = new Thread(() -> drone.getDroneGRPCManager().assignOrder(order));
-//          t.start();//these threads try to assign orders to free drones, are the same count as the orders
         }
 
         public void connectionLost(Throwable cause) {
@@ -116,6 +112,7 @@ public class DroneOrderManager implements Runnable{
         while (!drone.isQuitting()){
           wait();
         }
+        System.out.println("Client Disconnected");
         client.disconnect();
       }
 

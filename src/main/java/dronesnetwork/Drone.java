@@ -163,7 +163,6 @@ public class Drone {
       //2 - disconnect from MQTT broker
       synchronized (droneOrderManager){
         droneOrderManager.notifyAll();//wake up DroneOrderManager thread that will disconnect from broker because isQuitting is set to true
-        //I have to notify all because also threads that have to assign a order are synced on this object
       }
       //3 - wait for assign of left deliveries
       synchronized (droneOrderManager.orders){

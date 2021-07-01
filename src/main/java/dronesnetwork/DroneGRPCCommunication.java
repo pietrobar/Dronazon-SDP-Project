@@ -135,6 +135,7 @@ public class DroneGRPCCommunication implements Runnable{
               //DEAD DRONE delete from my list
               drone.removeDroneFromList(successor);
               drone.setInElection(false);
+              channel.shutdownNow();
               startElection();//restart the election because this one failed!
             }
 
@@ -472,6 +473,7 @@ public class DroneGRPCCommunication implements Runnable{
         public void onError(Throwable t) {
           channel.shutdownNow();
           dom.removeOccupiedDrone(bestDrone);
+          drone.removeDroneFromList(bestDrone);
           //N.B. Per semplicita', si assume che un drone porta sempre a termine con successo la consegna a lui assegnata => This call cannot fail in this scenario
         }
 
