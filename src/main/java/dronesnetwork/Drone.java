@@ -317,6 +317,7 @@ public class Drone {
   }
 
   public synchronized void addDroneInfo(DroneInfo droneInfo) {
+    drones.removeIf(dead -> dead.getId()==droneInfo.getId());//If it was already present =>  It was dead and another drone took his place
     drones.add(droneInfo);
     drones.sort(Comparator.comparingInt(DroneInfo::getId));
   }
