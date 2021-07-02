@@ -38,6 +38,7 @@ public class DronePollutionSensor implements Runnable{
           }
         }
         measurements = slidingWindow.readAllAndClean();
+        slidingWindow.notify();
 
       }
       synchronized (this){

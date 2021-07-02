@@ -7,23 +7,31 @@ import java.util.List;
  * Created by Pietro on 12/05/2021
  */
 public class SlidingWindow implements Buffer{
-  private final List<Measurement> slidingWindow;//max size of 8, 50% overlap
+  private final List<Measurement> buffer;//max size of 8, 50% overlap
   public SlidingWindow() {
-    slidingWindow = new ArrayList<>();
+    buffer = new ArrayList<>();
   }
 
   @Override
   public synchronized void addMeasurement(Measurement m) {
-    slidingWindow.add(m);
-    if(slidingWindow.size()==8){
-      notify();
+    //pattern producer consumer
+    while (buffer.size()>=8){
+      try {
+        wait();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
     }
+    buffer.add(m);
+    notify();
+
+
   }
 
   @Override
-  public synchronized List<Measurement> readAllAndClean() {
-    List<Measurement> res = new ArrayList<>(slidingWindow);
-    slidingWindow.subList(0, 4).clear();
+  public List<Measurement> readAllAndClean() {
+    List<Measurement> res = new ArrayList<>(buffer);
+    buffer.subList(0, 4).clear();
     return res;
   }
 
@@ -34,6 +42,6 @@ public class SlidingWindow implements Buffer{
   }
 
   public int size() {
-    return slidingWindow.size();
+    return buffer.size();
   }
 }
